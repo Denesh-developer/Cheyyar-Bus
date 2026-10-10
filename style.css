@@ -1419,3 +1419,96 @@ input, textarea {
   -webkit-user-select: auto !important;
   user-select: auto !important;
 }
+/* Route Notification Badges */
+.bus-name-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.route-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  width: fit-content;
+  letter-spacing: 0.2px;
+}
+
+/* Regular Arcot Route (Cool Blue / Slate Glow) */
+.route-tag.tag-arcot {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+/* Sivaji Bus Village Route (Warm Amber / Gold Glow) */
+.route-tag.tag-sivaji {
+  background: rgba(251, 191, 36, 0.14);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+/* Vembakkam Route Tag (Greenish Glow) */
+.route-tag.tag-vembakkam {
+  background: rgba(47, 214, 143, 0.12);
+  color: #2fd68f;
+  border: 1px solid rgba(47, 214, 143, 0.35);
+}
+
+/* Kanchipuram Direct Tag (Purple Glow) */
+.route-tag.tag-kanchi {
+  background: rgba(167, 139, 250, 0.14);
+  color: #a78bfa;
+  border: 1px solid rgba(167, 139, 250, 0.35);
+}
+/* Arani Route Tag (Orange / Peach Accent) */
+.route-tag.tag-arani {
+  background: rgba(249, 115, 22, 0.14);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+}/* 6. Korukkai Route (கொரக்கை) - Rose / Crimson */
+.route-tag.tag-korkai {
+  background: rgba(244, 63, 94, 0.14);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+}
+/* Thavasi Route Tag - Lime / Green */
+.route-tag.tag-thavasi {
+  background: rgba(132, 204, 22, 0.14);
+  color: #84cc16;
+  border: 1px solid rgba(132, 204, 22, 0.35);
+}
+/* Kalavai Route Tag - Sky Blue / Cyan Accent */
+.route-tag.tag-kalavai {
+  background: rgba(14, 165, 233, 0.14);
+  color: #0ea5e9;
+  border: 1px solid rgba(14, 165, 233, 0.35);
+}
+/* Parasur Route Tag */
+.route-tag.tag-parasur {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+/* Gingee Route Tag */
+.route-tag.tag-gingee {
+  background: rgba(234, 88, 12, 0.14);
+  color: #ea580c;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+}
+
+/* Puducherry Route Tag */
+.route-tag.tag-puducherry {
+  background: rgba(59, 130, 246, 0.14);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+/* Find Next Bus Highlight Animation */
+tr.active-highlight {
+  outline: 2px solid #ff7a45 !important;
+  background: rgba(255, 122, 69, 0.22) !important;
+  transition: all 0.3s ease-in-out;
+}
