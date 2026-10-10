@@ -1111,12 +1111,24 @@
      .brand { font-size: 17px !important; }
      .brand-badge { width: 32px !important; height: 32px !important; font-size: 16px !important; }
    
-     .founder-btn {
-       height: 32px !important;
-       padding: 0 9px !important;
-       font-size: 11px !important;
-       gap: 4px !important;
-     }
+   /* Mobile-il Dev by Denesh button neat icon-badge-aaga maarividum (Zero merge/overlap) */
+  .founder-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    flex-shrink: 0 !important;
+  }
+  .founder-btn-text {
+    display: none !important; /* Mobile-il text maraindhu, ⚡ icon mattum neat-aa theriyum */
+  }
+  .founder-btn-icon {
+    font-size: 15px !important;
+    margin: 0 !important;
+  }
      .nav-pill-btn {
        height: 32px !important;
        padding: 0 8px !important;
