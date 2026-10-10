@@ -1400,3 +1400,22 @@ html, body, * {
   height: 0px !important;
   background: transparent !important;
 }
+/* Disable text selection everywhere (Browser & APK) */
+*, *::before, *::after {
+  -webkit-user-select: none !important; /* Safari, Chrome, Android WebView */
+  -moz-user-select: none !important;    /* Firefox */
+  -ms-user-select: none !important;     /* IE/Edge */
+  user-select: none !important;         /* Standard */
+  
+  /* Long-press callout menu-vai block panna (iOS & Android) */
+  -webkit-touch-callout: none !important;
+  
+  /* Tap highlight blue box-ai disable panna */
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Oruvelai input boxes / textarea irundhaa mattum type panna allow panna: */
+input, textarea {
+  -webkit-user-select: auto !important;
+  user-select: auto !important;
+}
