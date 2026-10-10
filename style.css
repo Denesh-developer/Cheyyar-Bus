@@ -1388,3 +1388,15 @@ html, body {
     border-radius: 12px !important;
   }
 }
+/* Hide scrollbar everywhere (Chrome, Android WebView, Safari) */
+html, body, * {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE & Edge */
+}
+
+::-webkit-scrollbar {
+  display: none !important; /* Chrome, Android WebView, Safari */
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
+}
