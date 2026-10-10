@@ -6,6 +6,11 @@
    - Vandavasi (Direct SH-115)
    - Arani (via S.V Nagaram)
    - Korukkai (கொரக்கை)
+   - Thavasi (தவசி)
+   - Kalavai (கலவை)
+   - Parasur (பாராசூர்)
+   - Gingee (செஞ்சி)
+   - Puducherry (புதுச்சேரி)
    ========================================================= */
 
    const $ = id => document.getElementById(id);
@@ -20,7 +25,9 @@
          fromList = $("from-list"),
          toList = $("to-list"),
          stageEl = $("stage"),
-         upcomingToggle = $("upcoming-toggle");
+         upcomingToggle = $("upcoming-toggle"),
+         langBtn = $("lang-btn"),
+         langLabel = $("lang-label");
    
    let lang = "en";
    let activeRow = null, nextRow = null, lastNext = null;
@@ -126,61 +133,65 @@
    const OFFSETS_KORUKKAI = {
      "cheyyar": 0, "vellai": 7, "kilathur": 13, "eraiyur": 19, "korukkai": 25
    };
+   
    /* 8. Thavasi Route (தவசி) */
-const ROUTE_THAVASI = [
-  "cheyyar", "kilmattai", "thavasi"
-];
-
-const OFFSETS_THAVASI = {
-  "cheyyar": 0, "kilmattai": 10, "thavasi": 20
-};
-/* 9. Kalavai Route (கலவை) */
-const ROUTE_KALAVAI = [
-  "cheyyar", "arani koot road", "duli", "pappanthangal", "sirugattur",
-  "moranam", "randam", "mecheri", "kalavai koot road", "kaniyanthangal",
-  "allalacheri", "kalavai"
-];
-
-const OFFSETS_KALAVAI = {
-  "cheyyar": 0, "arani koot road": 7, "duli": 13, "pappanthangal": 18,
-  "sirugattur": 24, "moranam": 28, "randam": 33, "mecheri": 37,
-  "kalavai koot road": 42, "kaniyanthangal": 46, "allalacheri": 51, "kalavai": 56
-};
-/* 10. Parasur Route (பாராசூர்) */
-const ROUTE_PARASUR = [
-  "cheyyar", "vellai", "mottur", "kilathur", "parasur"
-];
-
-const OFFSETS_PARASUR = {
-  "cheyyar": 0, "vellai": 7, "mottur": 11, "kilathur": 15, "parasur": 22
-};
-
-/* 11. Cheyyar to Gingee Route (செஞ்சி) */
-const ROUTE_GINGEE = [
-  "cheyyar", "anakavur", "erumaivetti", "kulamanthai", "eachur", "vandavasi",
-  "navalpakkam", "thellar", "dadapuram", "naduvanandal", "nattarmangalam",
-  "senjikottai", "gingee"
-];
-
-const OFFSETS_GINGEE = {
-  "cheyyar": 0, "anakavur": 8, "erumaivetti": 15, "kulamanthai": 22, "eachur": 28,
-  "vandavasi": 38, "navalpakkam": 45, "thellar": 53, "dadapuram": 62,
-  "naduvanandal": 72, "nattarmangalam": 80, "senjikottai": 88, "gingee": 95
-};
-
-/* 12. Cheyyar to Puducherry Route (புதுச்சேரி) */
-const ROUTE_PUDUCHERRY = [
-  "cheyyar", "anakavur", "erumaivetti", "kulamanthai", "eachur", "vandavasi",
-  "navalpakkam", "thellar", "salavadi", "tindivanam", "aadthur", "omandur",
-  "kiliyanur", "andiyarpalayam", "puducherry"
-];
-
-const OFFSETS_PUDUCHERRY = {
-  "cheyyar": 0, "anakavur": 8, "erumaivetti": 15, "kulamanthai": 22, "eachur": 28,
-  "vandavasi": 38, "navalpakkam": 45, "thellar": 53, "salavadi": 64,
-  "tindivanam": 78, "aadthur": 88, "omandur": 98, "kiliyanur": 108,
-  "andiyarpalayam": 118, "puducherry": 130
-};
+   const ROUTE_THAVASI = [
+     "cheyyar", "kilmattai", "thavasi"
+   ];
+   
+   const OFFSETS_THAVASI = {
+     "cheyyar": 0, "kilmattai": 10, "thavasi": 20
+   };
+   
+   /* 9. Kalavai Route (கலவை) */
+   const ROUTE_KALAVAI = [
+     "cheyyar", "arani koot road", "duli", "pappanthangal", "sirugattur",
+     "moranam", "randam", "mecheri", "kalavai koot road", "kaniyanthangal",
+     "allalacheri", "kalavai"
+   ];
+   
+   const OFFSETS_KALAVAI = {
+     "cheyyar": 0, "arani koot road": 7, "duli": 13, "pappanthangal": 18,
+     "sirugattur": 24, "moranam": 28, "randam": 33, "mecheri": 37,
+     "kalavai koot road": 42, "kaniyanthangal": 46, "allalacheri": 51, "kalavai": 56
+   };
+   
+   /* 10. Parasur Route (பாராசூர்) */
+   const ROUTE_PARASUR = [
+     "cheyyar", "vellai", "mottur", "kilathur", "parasur"
+   ];
+   
+   const OFFSETS_PARASUR = {
+     "cheyyar": 0, "vellai": 7, "mottur": 11, "kilathur": 15, "parasur": 22
+   };
+   
+   /* 11. Cheyyar to Gingee Route (செஞ்சி) */
+   const ROUTE_GINGEE = [
+     "cheyyar", "anakavur", "erumaivetti", "kulamanthai", "eachur", "vandavasi",
+     "navalpakkam", "thellar", "dadapuram", "naduvanandal", "nattarmangalam",
+     "senjikottai", "gingee"
+   ];
+   
+   const OFFSETS_GINGEE = {
+     "cheyyar": 0, "anakavur": 8, "erumaivetti": 15, "kulamanthai": 22, "eachur": 28,
+     "vandavasi": 38, "navalpakkam": 45, "thellar": 53, "dadapuram": 62,
+     "naduvanandal": 72, "nattarmangalam": 80, "senjikottai": 88, "gingee": 95
+   };
+   
+   /* 12. Cheyyar to Puducherry Route (புதுச்சேரி) */
+   const ROUTE_PUDUCHERRY = [
+     "cheyyar", "anakavur", "erumaivetti", "kulamanthai", "eachur", "vandavasi",
+     "navalpakkam", "thellar", "salavadi", "tindivanam", "aadthur", "omandur",
+     "kiliyanur", "andiyarpalayam", "puducherry"
+   ];
+   
+   const OFFSETS_PUDUCHERRY = {
+     "cheyyar": 0, "anakavur": 8, "erumaivetti": 15, "kulamanthai": 22, "eachur": 28,
+     "vandavasi": 38, "navalpakkam": 45, "thellar": 53, "salavadi": 64,
+     "tindivanam": 78, "aadthur": 88, "omandur": 98, "kiliyanur": 108,
+     "andiyarpalayam": 118, "puducherry": 130
+   };
+   
    /* =========================================================
       2. DATA & ROUTE INITIALIZATION
       ========================================================= */
@@ -257,21 +268,30 @@ const OFFSETS_PUDUCHERRY = {
      const toCity = (r.to || "").toLowerCase();
      const toCityTa = (r.toTa || "").toLowerCase();
    
+     if (rKey.includes("puducherry") || toCity.includes("puducherry") || toCityTa.includes("புதுச்சேரி") || toCity.includes("pondicherry") || toCityTa.includes("பாண்டிச்சேரி")) {
+       return ROUTE_PUDUCHERRY;
+     }
+     if (rKey.includes("gingee") || rKey.includes("senji") || toCity.includes("gingee") || toCityTa.includes("செஞ்சி")) {
+       return ROUTE_GINGEE;
+     }
+     if (rKey.includes("parasur") || toCity.includes("parasur") || toCityTa.includes("பாராசூர்")) {
+       return ROUTE_PARASUR;
+     }
      if (rKey.includes("korkai") || rKey.includes("korukkai") || toCity.includes("korukkai") || toCityTa.includes("கொரக்கை") || toCityTa.includes("கொர்க்கை")) {
        return ROUTE_KORUKKAI;
      }
      if (rKey.includes("kalavai") || toCity.includes("kalavai") || toCityTa.includes("கலவை")) {
-      return ROUTE_KALAVAI;
-    }
+       return ROUTE_KALAVAI;
+     }
+     if (rKey.includes("thavasi") || toCity.includes("thavasi") || toCityTa.includes("தவசி")) {
+       return ROUTE_THAVASI;
+     }
      if (rKey.includes("arani") || toCity.includes("arani") || toCityTa.includes("ஆரணி") ||
          toCity.includes("salem") || toCityTa.includes("சேலம்") ||
          toCity.includes("tiruvannamalai") || toCityTa.includes("திருவண்ணாமலை") ||
          toCity.includes("polur") || toCityTa.includes("போளூர்")) {
        return ROUTE_ARANI_SV_NAGARAM;
      }
-     if (rKey.includes("thavasi") || toCity.includes("thavasi") || toCityTa.includes("தவசி")) {
-      return ROUTE_THAVASI;
-    }
      if (rKey.includes("vandavasi") || toCity.includes("vandavasi") || toCityTa.includes("வந்தவாசி")) {
        return ROUTE_VANDAVASI_DIRECT;
      }
@@ -281,15 +301,7 @@ const OFFSETS_PUDUCHERRY = {
      if (rKey.includes("arcot") || toCity.includes("vellore") || toCityTa.includes("வேலூர்") || toCity.includes("arcot") || toCityTa.includes("ஆற்காடு")) {
        return ROUTE_VELLORE_ARCOT;
      }
-     if (rKey.includes("puducherry") || toCity.includes("puducherry") || toCityTa.includes("புதுச்சேரி") || toCity.includes("pondicherry") || toCityTa.includes("பாண்டிச்சேரி")) {
-      return ROUTE_PUDUCHERRY;
-    }
-    if (rKey.includes("gingee") || rKey.includes("senji") || toCity.includes("gingee") || toCityTa.includes("செஞ்சி")) {
-      return ROUTE_GINGEE;
-    }
-    if (rKey.includes("parasur") || toCity.includes("parasur") || toCityTa.includes("பாராசூர்")) {
-      return ROUTE_PARASUR;
-    }
+   
      return [r.from, r.to].filter(Boolean);
    }
    
@@ -309,9 +321,9 @@ const OFFSETS_PUDUCHERRY = {
      else if (stops === ROUTE_THAVASI) offsetTable = OFFSETS_THAVASI;
      else if (stops === ROUTE_KALAVAI) offsetTable = OFFSETS_KALAVAI;
      else if (stops === ROUTE_PARASUR) offsetTable = OFFSETS_PARASUR;
-  else if (stops === ROUTE_GINGEE) offsetTable = OFFSETS_GINGEE;
-  else if (stops === ROUTE_PUDUCHERRY) offsetTable = OFFSETS_PUDUCHERRY;
-
+     else if (stops === ROUTE_GINGEE) offsetTable = OFFSETS_GINGEE;
+     else if (stops === ROUTE_PUDUCHERRY) offsetTable = OFFSETS_PUDUCHERRY;
+   
      const matchedKey = Object.keys(offsetTable).find(k => k.includes(q) || q.includes(k));
      if (!matchedKey || offsetTable[matchedKey] === 0) {
        return { timeStr: r.time, min: r.min, isOffset: false, offsetMins: 0 };
@@ -354,19 +366,19 @@ const OFFSETS_PUDUCHERRY = {
      const toSet = new Set();
    
      const allStops = Array.from(new Set([
-      ...ROUTE_VELLORE_ARCOT,
-      ...ROUTE_VELLORE_SIVAJI,
-      ...ROUTE_KANCHI_DIRECT,
-      ...ROUTE_KANCHI_VEMBAKKAM,
-      ...ROUTE_VANDAVASI_DIRECT,
-      ...ROUTE_ARANI_SV_NAGARAM,
-      ...ROUTE_KORUKKAI,
-      ...ROUTE_THAVASI,
-      ...ROUTE_KALAVAI,
-      ...ROUTE_PARASUR,
-      ...ROUTE_GINGEE,
-      ...ROUTE_PUDUCHERRY
-    ]));
+       ...ROUTE_VELLORE_ARCOT,
+       ...ROUTE_VELLORE_SIVAJI,
+       ...ROUTE_KANCHI_DIRECT,
+       ...ROUTE_KANCHI_VEMBAKKAM,
+       ...ROUTE_VANDAVASI_DIRECT,
+       ...ROUTE_ARANI_SV_NAGARAM,
+       ...ROUTE_KORUKKAI,
+       ...ROUTE_THAVASI,
+       ...ROUTE_KALAVAI,
+       ...ROUTE_PARASUR,
+       ...ROUTE_GINGEE,
+       ...ROUTE_PUDUCHERRY
+     ]));
    
      allStops.forEach(s => {
        const formatted = s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
@@ -456,19 +468,17 @@ const OFFSETS_PUDUCHERRY = {
        const stopsList = getRouteStops(r).map(s => s.toLowerCase());
    
        const matchStop = (stopName, query) => {
-        stopName = stopName.toLowerCase().trim();
-        query = query.toLowerCase().trim();
-        
-        // Query "arani" aanaal "arani koot road"-ai reject pannanum
-        if ((query === "arani" || query === "ஆரணி") && stopName.includes("koot road")) {
-          return false;
-        }
-        // Query "kalavai" aanaal "kalavai koot road"-ai reject pannanum
-        if ((query === "kalavai" || query === "கலவை") && stopName.includes("koot road")) {
-          return false;
-        }
-        return stopName === query || stopName.includes(query);
-      };
+         stopName = stopName.toLowerCase().trim();
+         query = query.toLowerCase().trim();
+         
+         if ((query === "arani" || query === "ஆரணி") && stopName.includes("koot road")) {
+           return false;
+         }
+         if ((query === "kalavai" || query === "கலவை") && stopName.includes("koot road")) {
+           return false;
+         }
+         return stopName === query || stopName.includes(query);
+       };
    
        // 1. STRICT FROM VALIDATION
        let fromIdx = 0;
@@ -581,25 +591,23 @@ const OFFSETS_PUDUCHERRY = {
          routeBadge = `<span class="route-tag tag-korkai">📍 வழி: கொரக்கை</span>`;
        } else if (routeId.includes("arani")) {
          routeBadge = `<span class="route-tag tag-arani">📍 வழி: S.V நகரம்</span>`;
-       }
-      else if (routeId.includes("parasur") || busDest.includes("parasur") || busDest.includes("பாராசூர்")) {
-        routeBadge = `<span class="route-tag tag-parasur">📍 வழி: பாராசூர்</span>`;
-      } else if (routeId.includes("gingee") || routeId.includes("senji") || busDest.includes("gingee") || busDest.includes("செஞ்சி")) {
-        routeBadge = `<span class="route-tag tag-gingee">📍 வழி: வந்தவாசி ➔ செஞ்சி</span>`;
-      } else if (routeId.includes("puducherry") || busDest.includes("puducherry") || busDest.includes("புதுச்சேரி")) {
-        routeBadge = `<span class="route-tag tag-puducherry">📍 வழி: திண்டிவனம் ➔ பாண்டி</span>`;
+       } else if (routeId.includes("parasur") || busDest.includes("parasur") || busDest.includes("பாராசூர்")) {
+         routeBadge = `<span class="route-tag tag-parasur">📍 வழி: பாராசூர்</span>`;
+       } else if (routeId.includes("gingee") || routeId.includes("senji") || busDest.includes("gingee") || busDest.includes("செஞ்சி")) {
+         routeBadge = `<span class="route-tag tag-gingee">📍 வழி: வந்தவாசி ➔ செஞ்சி</span>`;
+       } else if (routeId.includes("puducherry") || busDest.includes("puducherry") || busDest.includes("புதுச்சேரி")) {
+         routeBadge = `<span class="route-tag tag-puducherry">📍 வழி: திண்டிவனம் ➔ பாண்டி</span>`;
        } else if (routeId.includes("vembakkam") || busDest.includes("vembakkam") || busDest.includes("பெருங்கட்டூர்")) {
          routeBadge = `<span class="route-tag tag-vembakkam">📍 வழி: வெம்பாக்கம்</span>`;
        } else if (routeId.includes("arcot") || busDest.includes("vellore") || busDest.includes("வேலூர்") || busDest.includes("arcot") || busDest.includes("ஆற்காடு")) {
          routeBadge = `<span class="route-tag tag-arcot">📍 வழி: SH-5 ஆற்காடு பைபாஸ்</span>`;
-        } else if (routeId.includes("thavasi") || busDest.includes("thavasi") || busDest.includes("தவசி")) {
-          routeBadge = `<span class="route-tag tag-thavasi">📍 வழி: தவசி</span>`;
-        } else if (routeId.includes("kalavai") || busDest.includes("kalavai") || busDest.includes("கலவை")) {
-          routeBadge = `<span class="route-tag tag-kalavai">📍 வழி: கலவை</span>`;  } 
-       else if (routeId.includes("kanchipuram") || busDest.includes("dusi") || busDest.includes("mamandur") || busDest.includes("kanchipuram") || busDest.includes("காஞ்சிபுரம்")) {
+       } else if (routeId.includes("thavasi") || busDest.includes("thavasi") || busDest.includes("தவசி")) {
+         routeBadge = `<span class="route-tag tag-thavasi">📍 வழி: தவசி</span>`;
+       } else if (routeId.includes("kalavai") || busDest.includes("kalavai") || busDest.includes("கலவை")) {
+         routeBadge = `<span class="route-tag tag-kalavai">📍 வழி: கலவை</span>`;
+       } else if (routeId.includes("kanchipuram") || busDest.includes("dusi") || busDest.includes("mamandur") || busDest.includes("kanchipuram") || busDest.includes("காஞ்சிபுரம்")) {
          routeBadge = `<span class="route-tag tag-kanchi">📍 வழி: மாமண்டூர் / தூசி</span>`;
        }
-       
    
        tdBus.innerHTML = `
          <div class="bus-name-row">
@@ -661,14 +669,13 @@ const OFFSETS_PUDUCHERRY = {
      rowsEl.appendChild(fragment);
      countEl.textContent = list.length + I18N[lang].count(list.length);
    
-     // 👉 INGA ADD PANNUNGA (Step 2):
      if (!activeRow && list.length > 0) {
        activeRow = list[0];
        setActive(list[0]);
      } else if (activeRow && window.Bus3D && Bus3D.setSign) {
        Bus3D.setSign(current, DEST(activeRow), BUS(activeRow), activeRow.displayTime || activeRow.time);
      }
-   } // <-- render() function inga mudiyudhu
+   }
    
    function setActive(r) {
      activeRow = r;
@@ -682,32 +689,54 @@ const OFFSETS_PUDUCHERRY = {
    }
    
    /* =========================================================
-      6. CONTROLS & LISTENERS
+      6. CONTROLS, ROUTING & 3D TERMINAL MULTI-SIGN LOGIC
       ========================================================= */
-      function selectRoute(k) {
-        current = k;
-        fromEl.value = "";
-        toEl.value = "";
-        searchEl.value = "";
-        nextRow = null;
-        lastNext = null;
-        msgEl.textContent = "";
-      
-        const rows = ROUTES[k].rows;
-        const now = nowMin();
-        let upcoming = rows.find(r => r.min >= now) || rows[0];
-        activeRow = upcoming;
-        signRows[k] = upcoming;
-      
-        render();
-      
-        // 👉 Ella bus digital boards-aiyum ore nerathula update seiyya:
-        updateAllBusSigns();
-      
-        if (window.Bus3D && Bus3D.focus) {
-          Bus3D.focus(k);
-        }
-      }
+   
+   function updateAllBusSigns() {
+     if (!window.Bus3D || !Bus3D.setSign) return;
+   
+     const now = nowMin();
+   
+     IDS.forEach(routeKey => {
+       const routeData = ROUTES[routeKey];
+       if (!routeData || !routeData.rows || routeData.rows.length === 0) return;
+   
+       const upcomingBus = routeData.rows.find(r => r.min >= now) || routeData.rows[0];
+   
+       if (upcomingBus) {
+         Bus3D.setSign(
+           routeKey,
+           DEST(upcomingBus),
+           BUS(upcomingBus),
+           upcomingBus.displayTime || upcomingBus.time
+         );
+       }
+     });
+   }
+   
+   function selectRoute(k) {
+     current = k;
+     fromEl.value = "";
+     toEl.value = "";
+     searchEl.value = "";
+     nextRow = null;
+     lastNext = null;
+     msgEl.textContent = "";
+   
+     const rows = ROUTES[k].rows;
+     const now = nowMin();
+     let upcoming = rows.find(r => r.min >= now) || rows[0];
+     activeRow = upcoming;
+     signRows[k] = upcoming;
+   
+     render();
+     updateAllBusSigns();
+   
+     if (window.Bus3D && Bus3D.focus) {
+       Bus3D.focus(k);
+     }
+   }
+   
    function buildTabs() {
      tabsEl.innerHTML = "";
      IDS.forEach(k => {
@@ -725,32 +754,47 @@ const OFFSETS_PUDUCHERRY = {
        tabsEl.appendChild(b);
      });
    }
-   /* =========================================================
-   UPDATE ALL 3D BUS DIGITAL BOARDS AUTOMATICALLY
-   ========================================================= */
-function updateAllBusSigns() {
-  if (!window.Bus3D || !Bus3D.setSign) return;
-
-  const now = nowMin();
-
-  // Ella routes-kum avathavathu adutha upcoming bus-ai kandupidithu board-il ezhudhudhal
-  IDS.forEach(routeKey => {
-    const routeData = ROUTES[routeKey];
-    if (!routeData || !routeData.rows || routeData.rows.length === 0) return;
-
-    // Andha route-in adutha bus (illaiyel mudhal bus)
-    const upcomingBus = routeData.rows.find(r => r.min >= now) || routeData.rows[0];
-
-    if (upcomingBus) {
-      Bus3D.setSign(
-        routeKey,
-        DEST(upcomingBus),
-        BUS(upcomingBus),
-        upcomingBus.displayTime || upcomingBus.time
-      );
-    }
-  });
-}
+   
+   function updateLanguageUI() {
+     if (fromEl) fromEl.placeholder = lang === "ta" ? "புறப்படும் இடம் (எ.கா: செய்யாறு)" : "e.g. Cheyyar / செய்யாறு";
+     if (toEl) toEl.placeholder = lang === "ta" ? "சேரும் இடம் (எ.கா: காஞ்சிபுரம் / ஆரணி)" : "e.g. Kanchipuram / சென்னை / Arani";
+     if (searchEl) searchEl.placeholder = lang === "ta" ? "பஸ் எண் / நேரம் (எ.கா: 130, T59)" : "Filter by No (e.g. 130, 438, T59)";
+   
+     const nextBtn = $("next-btn");
+     if (nextBtn) {
+       nextBtn.innerHTML = lang === "ta" ? `⚡ அடுத்த பஸ்` : `⚡ Find Next Bus`;
+     }
+   
+     const heroTitle = document.querySelector(".hero-title");
+     if (heroTitle) {
+       heroTitle.textContent = lang === "ta" ? "செய்யாறு பேருந்து கால அட்டவணை" : "Plan Your Journey From Cheyyar";
+     }
+   }
+   
+   function applyLanguage(newLang) {
+     lang = newLang;
+     document.documentElement.lang = lang;
+     localStorage.setItem("cheyyar_bus_lang", lang);
+   
+     if (langLabel) {
+       langLabel.textContent = lang === "en" ? "தமிழ்" : "English";
+     }
+   
+     updateLanguageUI();
+     populateLocationDatalists();
+     buildTabs();
+     render();
+     updateAllBusSigns();
+   }
+   
+   if (langBtn) {
+     langBtn.addEventListener("click", e => {
+       e.preventDefault();
+       const nextLang = lang === "en" ? "ta" : "en";
+       applyLanguage(nextLang);
+     });
+   }
+   
    function debounce(fn, delay = 150) {
      let timer;
      return function (...args) {
@@ -792,68 +836,61 @@ function updateAllBusSigns() {
      render();
    });
    
-  /* =========================================================
-   FIND NEXT BUS CLICK ACTION
-   ========================================================= */
-$("next-btn").addEventListener("click", () => {
-  // 1. Search inputs-ai reset seivadhu
-  fromEl.value = "";
-  toEl.value = "";
-  searchEl.value = "";
-
-  const rows = ROUTES[current].rows;
-  const now = nowMin();
-
-  // 2. Current time-kku adutha upcoming bus-ai thedudhal
-  let r = rows.find(x => x.min >= now);
-  let isTomorrow = false;
-
-  // Indha naalil ini bus illaiyeil, naalai kaalai mudhal bus
-  if (!r) {
-    r = rows[0];
-    isTomorrow = true;
-  }
-
-  nextRow = r;
-  lastNext = { r, isTomorrow };
-
-  // 3. Table-ai render seithu andha bus-ai active aakudhal
-  render();
-  setActive(r);
-
-  // 4. 3D Bus Terminal Sign & Focus-ai update seivadhu
-  if (window.Bus3D) {
-    if (Bus3D.setSign) {
-      Bus3D.setSign(current, DEST(r), BUS(r), r.displayTime || r.time);
-    }
-    if (Bus3D.focus) {
-      Bus3D.focus(current);
-    }
-  }
-
-  // 5. User-kku thelivaana status message kaattudhal
-  if (msgEl) {
-    const diff = r.min - now;
-    const timeText = isTomorrow 
-      ? `Tomorrow at ${r.displayTime || r.time}` 
-      : `${r.displayTime || r.time} (${diff > 0 ? 'in ' + diff + ' mins' : 'now'})`;
-
-    msgEl.innerHTML = `
-      <div style="background: rgba(255, 122, 69, 0.15); border: 1px solid #ff7a45; padding: 10px 14px; border-radius: 8px; margin: 12px 0; color: #ff7a45; font-weight: 600;">
-        ⚡ Next Bus: <strong>${BUS(r)}</strong> to <strong>${DEST(r)}</strong> • Departure: <strong>${timeText}</strong>
-      </div>
-    `;
-  }
-
-  // 6. Kila table-il andha row-kku smooth scroll seivadhu
-  setTimeout(() => {
-    if (r._el) {
-      r._el.scrollIntoView({ block: "center", behavior: "smooth" });
-      r._el.classList.add("active-highlight");
-      setTimeout(() => r._el.classList.remove("active-highlight"), 2500);
-    }
-  }, 100);
-});
+   /* =========================================================
+      7. FIND NEXT BUS CLICK ACTION
+      ========================================================= */
+   $("next-btn").addEventListener("click", () => {
+     fromEl.value = "";
+     toEl.value = "";
+     searchEl.value = "";
+   
+     const rows = ROUTES[current].rows;
+     const now = nowMin();
+   
+     let r = rows.find(x => x.min >= now);
+     let isTomorrow = false;
+   
+     if (!r) {
+       r = rows[0];
+       isTomorrow = true;
+     }
+   
+     nextRow = r;
+     lastNext = { r, isTomorrow };
+   
+     render();
+     setActive(r);
+   
+     if (window.Bus3D) {
+       if (Bus3D.setSign) {
+         Bus3D.setSign(current, DEST(r), BUS(r), r.displayTime || r.time);
+       }
+       if (Bus3D.focus) {
+         Bus3D.focus(current);
+       }
+     }
+   
+     if (msgEl) {
+       const diff = r.min - now;
+       const timeText = isTomorrow 
+         ? `Tomorrow at ${r.displayTime || r.time}` 
+         : `${r.displayTime || r.time} (${diff > 0 ? 'in ' + diff + ' mins' : 'now'})`;
+   
+       msgEl.innerHTML = `
+         <div style="background: rgba(255, 122, 69, 0.15); border: 1px solid #ff7a45; padding: 10px 14px; border-radius: 8px; margin: 12px 0; color: #ff7a45; font-weight: 600;">
+           ⚡ Next Bus: <strong>${BUS(r)}</strong> to <strong>${DEST(r)}</strong> • Departure: <strong>${timeText}</strong>
+         </div>
+       `;
+     }
+   
+     setTimeout(() => {
+       if (r._el) {
+         r._el.scrollIntoView({ block: "center", behavior: "smooth" });
+         r._el.classList.add("active-highlight");
+         setTimeout(() => r._el.classList.remove("active-highlight"), 2500);
+       }
+     }, 100);
+   });
    
    $("theme-btn").addEventListener("click", () => {
      const root = document.documentElement;
@@ -894,21 +931,31 @@ $("next-btn").addEventListener("click", () => {
      }, 40);
    }
    
- // Ovoru 1 nimidamum ella 3D board matrum timetable table update aagum
-setInterval(() => {
-  updateAllBusSigns();
-  render();
-}, 60000);
-initLoadingScreen();
-populateLocationDatalists();
-const ok = window.Bus3D ? Bus3D.init(stageEl, DATA.routes, selectRoute) : false;
-if (ok) {
-  stageEl.classList.add("ready");
-  const loader = stageEl.querySelector(".stage-loading");
-  if (loader) loader.style.display = "none";
-}
-buildTabs();
-
-// Initial load: ella bus signs-aiyum update panni, default route-ai select seivadhu
-updateAllBusSigns();
-selectRoute(current);
+   /* =========================================================
+      8. REAL-TIME AUTO UPDATE & INITIALIZATION
+      ========================================================= */
+   
+   setInterval(() => {
+     const now = nowMin();
+     if (activeRow && activeRow.min < now) {
+       const rows = ROUTES[current].rows;
+       const nextBus = rows.find(r => r.min >= now) || rows[0];
+       if (nextBus) {
+         activeRow = nextBus;
+       }
+     }
+     updateAllBusSigns();
+     render();
+   }, 60000);
+   
+   initLoadingScreen();
+   const ok = window.Bus3D ? Bus3D.init(stageEl, DATA.routes, selectRoute) : false;
+   if (ok) {
+     stageEl.classList.add("ready");
+     const loader = stageEl.querySelector(".stage-loading");
+     if (loader) loader.style.display = "none";
+   }
+   
+   const storedLang = localStorage.getItem("cheyyar_bus_lang") || "en";
+   applyLanguage(storedLang);
+   selectRoute(current);
