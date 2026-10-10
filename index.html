@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050609">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 rx=%2728%27 fill=%27%23ff5c35%27/%3E%3Ctext x=%2750%27 y=%2766%27 font-size=%2756%27 text-anchor=%27middle%27%3E%F0%9F%9A%8C%3C/text%3E%3C/svg%3E">
+<title>Cheyyar Bus | செய்யாறு பேருந்து கால அட்டவணை</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- ================= LOADING SCREEN ================= -->
+<div id="app-loading-screen" class="loading-screen-overlay">
+  <div class="splash-glow"></div>
+  
+  <div class="loader-content">
+    <!-- Moving Bus on Road Animation -->
+    <div class="bus-road-scene">
+      <div class="scene-cloud cloud-1">☁️</div>
+      <div class="scene-cloud cloud-2">☁️</div>
+      <div class="moving-bus-wrap">
+        <div class="bus-body">
+          <div class="bus-roof"></div>
+          <div class="bus-windows">
+            <span class="win"></span>
+            <span class="win"></span>
+            <span class="win"></span>
+            <span class="win front"></span>
+          </div>
+          <div class="bus-strip"></div>
+          <div class="bus-light"></div>
+          <div class="bus-wheel wheel-front"></div>
+          <div class="bus-wheel wheel-back"></div>
+        </div>
+        <div class="bus-exhaust">
+          <span></span><span></span>
+        </div>
+      </div>
+      <div class="moving-road">
+        <div class="road-line"></div>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <h1 class="splash-title">Cheyyar <span>Bus</span></h1>
+    <p class="splash-tagline">Hyperlocal Transit Hub</p>
+
+    <!-- 0% - 100% Progress -->
+    <div class="progress-container">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-text-row">
+        <span class="status-lbl">Loading Station Data…</span>
+        <span class="progress-num" id="progress-num">0%</span>
+      </div>
+    </div>
+
+    <!-- Developer Tagline on Loading Screen -->
+    <div class="splash-developer-badge">
+      <span class="dev-icon">💻</span>
+      <span>Developed by <strong>Denesh</strong></span>
+    </div>
+  </div>
+</div>
+<!-- ================= END LOADING SCREEN ================= -->
+<header class="topbar">
+  <div class="brand-wrap">
+    <div class="brand-badge">🚌</div>
+    <div class="brand">Cheyyar <span>Bus</span></div>
+  </div>
+<!-- Header Navbar-il உள்ள .top-actions-ஐ இப்படி மாற்றவும்: -->
+<div class="top-actions">
+  <button class="founder-btn" id="open-dev-modal" type="button" aria-label="Developer Info">
+    <span class="founder-btn-icon">⚡</span>
+    <span class="founder-btn-text">Dev by <strong>Denesh</strong></span>
+  </button>
+  <button class="nav-pill-btn" id="lang-btn" type="button" aria-label="Toggle language">
+    <span>🌐</span> <strong id="lang-label">தமிழ்</strong>
+  </button>
+  <button class="icon-circle-btn" id="theme-btn" type="button" aria-label="Toggle theme">
+    <span>🌓</span>
+  </button>
+</div>
+</header>
+
+<main class="layout-wrap">
+  <!-- Hero & 3D Section -->
+  <section class="hero-3d-grid">
+    <div class="hero-card">
+      <div class="live-pill">
+        <span class="live-dot"></span>
+        <span data-i18n="livePill">Daily Scheduled Timetable</span>
+      </div>
+      <h1 class="hero-title" data-i18n="heroHead">Plan Your Journey From Cheyyar</h1>
+      <p class="hero-desc" data-i18n="intro">Search by origin and destination, filter route-wise, or tap any bus to preview on the 3D bus display.</p>
+
+      <div class="hero-action-row">
+        <button class="primary action-btn" id="next-btn" type="button">
+          <span>⚡</span> <span data-i18n="next">Find Next Bus</span>
+        </button>
+      </div>
+
+      <div id="next-msg" class="next-bus-box" aria-live="polite"></div>
+
+      <div class="stats-panel">
+        <div class="stat-col">
+          <strong id="st-n">0</strong>
+          <span data-i18n="entries">Total Buses</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-col">
+          <strong id="st-r">0</strong>
+          <span data-i18n="routes">Routes / மார்க்கம்</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-col">
+          <strong>24/7</strong>
+          <span>Schedule</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3D Bus Display Canvas Card -->
+    <div class="stage-container">
+      <div class="stage-topbar">
+        <span class="stage-tag">3D Bus Terminal</span>
+        <span class="stage-hint-text" data-i18n="hint">Drag to turn the bus</span>
+      </div>
+      <div class="stage" id="stage" tabindex="0" role="img" aria-label="3D Cheyyar bus stand view">
+        <div class="stage-loading" data-i18n="load">Loading 3D bus stand…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cheyyar Hub Transit Search Box (From & To) -->
+  <section class="search-panel">
+    <div class="search-grid">
+      <div class="field-wrap">
+        <label for="from-search" class="field-label">
+          <span class="dot-icon green"></span> <span data-i18n="fromLabel">From / புறப்படும் இடம்</span>
+        </label>
+        <div class="input-box">
+          <input type="text" id="from-search" placeholder="e.g. Cheyyar / செய்யாறு" autocomplete="off" list="from-list">
+          <datalist id="from-list"></datalist>
+          <button type="button" class="btn-clear-input" id="clear-from-btn" title="Clear">✕</button>
+        </div>
+      </div>
+
+      <button type="button" class="swap-btn" id="swap-btn" title="Swap locations" aria-label="Swap locations">
+        ⇄
+      </button>
+
+      <div class="field-wrap">
+        <label for="to-search" class="field-label">
+          <span class="dot-icon red"></span> <span data-i18n="toLabel">To / சேரும் இடம்</span>
+        </label>
+        <div class="input-box">
+          <input type="text" id="to-search" placeholder="e.g. Kanchipuram / சென்னை / Arani" autocomplete="off" list="to-list">
+          <datalist id="to-list"></datalist>
+          <button type="button" class="btn-clear-input" id="clear-to-btn" title="Clear">✕</button>
+        </div>
+      </div>
+
+      <div class="field-wrap extra-wrap">
+        <label for="search" class="field-label">
+          <span class="dot-icon purple"></span> <span data-i18n="extraLabel">Bus No / Time / Operator</span>
+        </label>
+        <div class="input-box">
+          <input type="search" id="search" placeholder="Filter by No (e.g. 130, 438, T56)" autocomplete="off">
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Destination Chips -->
+    <div class="chips-strip">
+      <span class="chips-label">Quick Search:</span>
+      <div class="chips-row">
+        <button type="button" class="chip-btn" data-city="Kanchipuram">Kanchipuram (காஞ்சிபுரம்)</button>
+        <button type="button" class="chip-btn" data-city="Chennai">Chennai (சென்னை)</button>
+        <button type="button" class="chip-btn" data-city="Arani">Arani (ஆரணி)</button>
+        <button type="button" class="chip-btn" data-city="Vandavasi">Vandavasi (வந்தவாசி)</button>
+        <button type="button" class="chip-btn" data-city="Bengaluru">Bengaluru (பெங்களூர்)</button>
+        <button type="button" class="chip-btn" data-city="Vellore">Vellore (வேலூர்)</button>
+        <button type="button" class="chip-btn reset" id="clear-all-filters">Reset All</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Route Category Filters (Horizontal Tabs) -->
+  <section class="routes-section">
+    <div class="routes-header">
+      <h3 class="routes-title" data-i18n="routeTabsTitle">Bus Routes / வழித்தடங்கள்</h3>
+      <span class="route-count-badge" id="count"></span>
+    </div>
+    <div class="tabs-slider" id="tabs" role="tablist"></div>
+  </section>
+
+  <!-- Timetable Table View -->
+  <section class="timetable-section">
+    <div class="table-card">
+      <div class="table-scroll">
+        <table class="timetable">
+          <thead>
+            <tr>
+              <th class="th-time" data-i18n="time">Time</th>
+              <th class="th-bus" data-i18n="bus">Bus No / Operator</th>
+              <th class="th-from" data-i18n="colFrom">From</th>
+              <th class="th-dest" data-i18n="colTo">Destination</th>
+              <th class="th-plat" id="th-plat" data-i18n="plat" hidden>Platform</th>
+              <th class="th-action" style="text-align: right;">Share</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+<!-- ================= DEVELOPER MODAL ================= -->
+<div class="modal-backdrop" id="dev-modal" style="display: none;">
+  <div class="founder-modal">
+    <div class="modal-header">
+      <div class="founder-icon">⚡</div>
+      <button type="button" class="modal-close-btn" id="close-dev-modal">✕</button>
+    </div>
+    <span class="dev-eyebrow">CREATOR & DEVELOPER</span>
+    <h2 class="dev-name">Deneshraja Nedunchezhian</h2>
+    <p class="dev-bio">Founder & Lead Developer of <strong>Cheyyar Hub</strong>. Crafted with dedication to digitize transit and local schedules for Cheyyar.</p>
+
+    <div class="founder-details-box">
+      <div class="detail-row">
+        <span>Platform</span>
+        <strong>Cheyyar Bus Timings Hub</strong>
+      </div>
+      <div class="detail-row">
+        <span>Region</span>
+        <strong>Cheyyaru, Tamil Nadu</strong>
+      </div>
+      <div class="detail-row">
+        <span>Contact / Profile</span>
+        <strong>Denesh-developer</strong>
+      </div>
+    </div>
+
+    <button type="button" class="primary full" id="close-dev-modal-btn">Close</button>
+  </div>
+</div>
+<footer class="footer-wrap" id="footer">
+  <p data-i18n="foot">Copied from the Cheyyar bus stand timetable. Always verify the board before travel.</p>
+  <div class="footer-credit">
+    <span>Crafted with ❤️ for Cheyyar</span>
+    <span class="dev-pill">Developed by <strong>Denesh</strong></span>
+  </div>
+</footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="data/timetable.js"></script>
+<script src="i18n.js"></script>
+<script src="bus3d.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
