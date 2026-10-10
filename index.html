@@ -2,22 +2,21 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#050609">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 rx=%2728%27 fill=%27%23ff5c35%27/%3E%3Ctext x=%2750%27 y=%2766%27 font-size=%2756%27 text-anchor=%27middle%27%3E%F0%9F%9A%8C%3C/text%3E%3C/svg%3E">
 <title>Cheyyar Bus | செய்யாறு பேருந்து கால அட்டவணை</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- ================= LOADING SCREEN ================= -->
+
+<!-- ================= ANIMATED MOVING BUS SPLASH SCREEN ================= -->
 <div id="app-loading-screen" class="loading-screen-overlay">
   <div class="splash-glow"></div>
-  
   <div class="loader-content">
-    <!-- Moving Bus on Road Animation -->
     <div class="bus-road-scene">
       <div class="scene-cloud cloud-1">☁️</div>
       <div class="scene-cloud cloud-2">☁️</div>
@@ -35,20 +34,16 @@
           <div class="bus-wheel wheel-front"></div>
           <div class="bus-wheel wheel-back"></div>
         </div>
-        <div class="bus-exhaust">
-          <span></span><span></span>
-        </div>
+        <div class="bus-exhaust"><span></span><span></span></div>
       </div>
       <div class="moving-road">
         <div class="road-line"></div>
       </div>
     </div>
 
-    <!-- Title -->
     <h1 class="splash-title">Cheyyar <span>Bus</span></h1>
     <p class="splash-tagline">Hyperlocal Transit Hub</p>
 
-    <!-- 0% - 100% Progress -->
     <div class="progress-container">
       <div class="progress-bar-track">
         <div class="progress-bar-fill" id="progress-fill"></div>
@@ -59,36 +54,35 @@
       </div>
     </div>
 
-    <!-- Developer Tagline on Loading Screen -->
     <div class="splash-developer-badge">
       <span class="dev-icon">💻</span>
       <span>Developed by <strong>Denesh</strong></span>
     </div>
   </div>
 </div>
-<!-- ================= END LOADING SCREEN ================= -->
+<!-- ================= END SPLASH SCREEN ================= -->
+
 <header class="topbar">
   <div class="brand-wrap">
     <div class="brand-badge">🚌</div>
     <div class="brand">Cheyyar <span>Bus</span></div>
   </div>
-<!-- Header Navbar-il உள்ள .top-actions-ஐ இப்படி மாற்றவும்: -->
-<div class="top-actions">
-  <button class="founder-btn" id="open-dev-modal" type="button" aria-label="Developer Info">
-    <span class="founder-btn-icon">⚡</span>
-    <span class="founder-btn-text">Dev by <strong>Denesh</strong></span>
-  </button>
-  <button class="nav-pill-btn" id="lang-btn" type="button" aria-label="Toggle language">
-    <span>🌐</span> <strong id="lang-label">தமிழ்</strong>
-  </button>
-  <button class="icon-circle-btn" id="theme-btn" type="button" aria-label="Toggle theme">
-    <span>🌓</span>
-  </button>
-</div>
+  <div class="top-actions">
+    <button class="founder-btn" id="open-dev-modal" type="button" aria-label="Developer Info">
+      <span class="founder-btn-icon">⚡</span>
+      <span class="founder-btn-text">Dev by <strong>Denesh</strong></span>
+    </button>
+    <button class="nav-pill-btn" id="lang-btn" type="button" aria-label="Toggle language">
+      <span>🌐</span> <strong id="lang-label">தமிழ்</strong>
+    </button>
+    <button class="icon-circle-btn" id="theme-btn" type="button" aria-label="Toggle theme">
+      <span>🌓</span>
+    </button>
+  </div>
 </header>
 
 <main class="layout-wrap">
-  <!-- Hero & 3D Section -->
+  <!-- Top Hero & 3D Terminal Section -->
   <section class="hero-3d-grid">
     <div class="hero-card">
       <div class="live-pill">
@@ -114,7 +108,7 @@
         <div class="stat-sep"></div>
         <div class="stat-col">
           <strong id="st-r">0</strong>
-          <span data-i18n="routes">Routes / மார்க்கம்</span>
+          <span data-i18n="routes">Routes</span>
         </div>
         <div class="stat-sep"></div>
         <div class="stat-col">
@@ -136,7 +130,7 @@
     </div>
   </section>
 
-  <!-- Cheyyar Hub Transit Search Box (From & To) -->
+  <!-- Modern Transit Search Hub (From & To) -->
   <section class="search-panel">
     <div class="search-grid">
       <div class="field-wrap">
@@ -175,9 +169,15 @@
       </div>
     </div>
 
-    <!-- Quick Destination Chips -->
+    <!-- Live Filter Toggle & Destination Chips -->
     <div class="chips-strip">
-      <span class="chips-label">Quick Search:</span>
+      <div class="time-filter-toggle">
+        <label class="switch-label">
+          <input type="checkbox" id="upcoming-toggle" checked>
+          <span class="switch-text">🕒 Upcoming Buses Only</span>
+        </label>
+      </div>
+
       <div class="chips-row">
         <button type="button" class="chip-btn" data-city="Kanchipuram">Kanchipuram (காஞ்சிபுரம்)</button>
         <button type="button" class="chip-btn" data-city="Chennai">Chennai (சென்னை)</button>
@@ -190,7 +190,7 @@
     </div>
   </section>
 
-  <!-- Route Category Filters (Horizontal Tabs) -->
+  <!-- Route Category Filters (Scrollable Tabs) -->
   <section class="routes-section">
     <div class="routes-header">
       <h3 class="routes-title" data-i18n="routeTabsTitle">Bus Routes / வழித்தடங்கள்</h3>
@@ -199,7 +199,7 @@
     <div class="tabs-slider" id="tabs" role="tablist"></div>
   </section>
 
-  <!-- Timetable Table View -->
+  <!-- Timetable Table View (Converts to Fluid Ticket Cards on Mobile) -->
   <section class="timetable-section">
     <div class="table-card">
       <div class="table-scroll">
@@ -219,6 +219,16 @@
       </div>
     </div>
   </section>
+
+  <footer class="footer-wrap" id="footer">
+    <p data-i18n="foot">Copied from the Cheyyar bus stand timetable. Always verify the board before travel.</p>
+    <div class="footer-credit">
+      <span>Crafted with ❤️ for Cheyyar</span>
+      <span class="dev-pill">Developed by <strong>Denesh</strong></span>
+    </div>
+  </footer>
+</main>
+
 <!-- ================= DEVELOPER MODAL ================= -->
 <div class="modal-backdrop" id="dev-modal" style="display: none;">
   <div class="founder-modal">
@@ -240,7 +250,7 @@
         <strong>Cheyyaru, Tamil Nadu</strong>
       </div>
       <div class="detail-row">
-        <span>Contact / Profile</span>
+        <span>GitHub Profile</span>
         <strong>Denesh-developer</strong>
       </div>
     </div>
@@ -248,14 +258,6 @@
     <button type="button" class="primary full" id="close-dev-modal-btn">Close</button>
   </div>
 </div>
-<footer class="footer-wrap" id="footer">
-  <p data-i18n="foot">Copied from the Cheyyar bus stand timetable. Always verify the board before travel.</p>
-  <div class="footer-credit">
-    <span>Crafted with ❤️ for Cheyyar</span>
-    <span class="dev-pill">Developed by <strong>Denesh</strong></span>
-  </div>
-</footer>
-</main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="data/timetable.js"></script>

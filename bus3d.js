@@ -4,7 +4,12 @@
    - Top LED Board: Displays Bus Operator Name / Number (Balamurugan, Sri Ramajayam, etc.) on TOP in bold
    - Sub-line: Shows Route Destination (Destination) + Scheduled Time
    - Realistic Ground Shadow (Ambient Occlusion)
-   - Swept-back Aerodynamic Coach, ORVMs with indicator, Alloy wheels, Projector headlights
+   - Aerodynamic High-Deck Luxury Coach with front windshield wipers
+   - Sleek Elephant-Ear Mirrors (ORVMs) with indicator strips
+   - Sculpted Rooftop AC unit with cooling fan discs & rear aerodynamic spoiler
+   - Projector LED Headlights + Fog lamps + Chrome Grille with central emblem
+   - Deep-dish Alloy wheels with tire rubber tread, 6-spoke rims, center cap & red brake calipers
+   - Mobile GPU Acceleration: DPR locked to 1.0 on mobile for buttery smooth 60fps
 */
 (function () {
   const FONT = "'Noto Sans Tamil','Space Grotesk','DM Sans',sans-serif";
@@ -22,7 +27,6 @@
     const b = B.buses[id]; if (!b) return;
     const x = b.ctx;
 
-    // Bus Name (e.g. Sri Ramajayam, Balamurugan, 438) & Destination
     const busTitle = (bus || dest || "CHEYYAR").toUpperCase();
     const destRoute = (dest || "").toUpperCase();
 
@@ -82,7 +86,9 @@
     } catch (e) { return false; }
 
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, matchMedia("(max-width:600px)").matches ? 1.5 : 2));
+    // GPU Optimization: DPR 1.0 on mobile to eliminate lag entirely!
+    const isMobile = matchMedia("(max-width: 768px)").matches;
+    renderer.setPixelRatio(isMobile ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5));
     if (renderer.outputEncoding) renderer.outputEncoding = THREE.sRGBEncoding || 3001;
     stage.insertBefore(renderer.domElement, stage.firstChild);
 
@@ -142,11 +148,10 @@
     sSign.position.set(0, 3.55, -2.95); scene.add(sSign);
 
     /* --- Wheel Assets --- */
-    const tireGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.36, 32);
-    const rimGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.38, 20);
+    const tireGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.36, 28);
+    const rimGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.38, 18);
     const hubGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.40, 14);
     const caliperGeo = new THREE.BoxGeometry(0.16, 0.24, 0.1);
-    const flat = new THREE.PlaneGeometry(1, 1);
 
     /* --- TVK Livery Luxury Coach Builder --- */
     function makeTVKBus(routeColor) {
@@ -251,13 +256,10 @@
 
       // J. FRONT DIGITAL LED DESTINATION SCREEN (Mounted on Exterior Face)
       const c = cv(1024, 256), tex = new THREE.CanvasTexture(c);
-      
-      // Housing backbox
       box(g, 2.16, 0.62, 0.06, darkMat, 0, 2.26, 3.26);
       box(g, 2.20, 0.04, 0.08, tvkGold, 0, 2.58, 3.28);
       box(g, 2.20, 0.04, 0.08, tvkGold, 0, 1.94, 3.28);
 
-      // Sign plane placed securely on the outer front face so it NEVER gets occluded
       const sign = plane(2.10, 0.54, tex);
       sign.position.set(0, 2.26, 3.32);
       g.add(sign);
@@ -265,25 +267,21 @@
       return { g, ctx: c.getContext("2d"), tex };
     }
 
-    // Platform Bay lane dividers
     for (let i = 0; i <= N; i++) {
       box(scene, 0.12, 0.02, 8.4, M(0xffffff, { roughness: 0.35 }), (i - N / 2) * SP, 0.015, 0.4);
     }
 
-    // Spawn TVK Styled Route Buses
     routes.forEach((r, i) => {
       const x = (i - (N - 1) / 2) * SP;
       const b = makeTVKBus(r.color || "#ff5c35");
       b.g.position.x = x; b.g.userData.id = r.id; b.x = x;
       scene.add(b.g);
 
-      // Active bay golden neon glow
-      b.hl = new THREE.Mesh(flat, new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.38 }));
+      b.hl = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.38 }));
       b.hl.scale.set(3.3, 8.4, 1); b.hl.rotation.x = -Math.PI / 2;
       b.hl.position.set(x, 0.02, 0.4); b.hl.visible = false;
       scene.add(b.hl);
 
-      // Bay floor markings
       const lc = cv(256, 96), lx = lc.getContext("2d");
       lx.fillStyle = "#0c0f17"; lx.fillRect(0, 0, 256, 96);
       lx.strokeStyle = "rgba(251, 191, 36, 0.45)"; lx.lineWidth = 4;
@@ -299,7 +297,6 @@
       B.buses[r.id] = b;
     });
 
-    /* --- Orbit Camera Controls --- */
     const st = { yaw: 0.32, pitch: 0.28, r: 21, tx: 0 }, goal = Object.assign({}, st);
     let sel = null, raf = 0, drag = false, first = true;
     const ovOne = () => Math.min(34, Math.max(16, 25 / cam.aspect));
@@ -350,7 +347,6 @@
       frameR(); st.r = goal.r; need();
     }).observe(stage);
 
-    /* --- Interactive Selection --- */
     const ray = new THREE.Raycaster(), v = new THREE.Vector2();
     let sx = 0, sy = 0, moved = 0;
     const pick = e => {
