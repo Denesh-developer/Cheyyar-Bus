@@ -1,9 +1,9 @@
 /* =========================================================
    CHEYYAR HUB - BUS TIMINGS ENGINE (FULL PRODUCTION READY)
    - Dynamic Custom Autocomplete Dropdown (A-Z Filtered)
-   - Universal Intermediate Stop Filtering (Village vs Highway)
-   - Accurate Live Moving Badge & Route Modal Timeline
-   - Dynamic Intermediate Origin Display (Vembakkam to Kanchi fix)
+   - Universal Intermediate Stop Filtering & Direct Live Badges
+   - Real-time Last Bus Alert Integration
+   - 3-Clip Natural Voice AI Assistant (.ogg Engine)
    ========================================================= */
 
    const $ = id => document.getElementById(id);
@@ -15,8 +15,6 @@
          swapBtn = $("swap-btn"),
          countEl = $("count"),
          msgEl = $("next-msg"),
-         fromList = $("from-list"),
-         toList = $("to-list"),
          stageEl = $("stage"),
          upcomingToggle = $("upcoming-toggle"),
          langBtn = $("lang-btn"),
@@ -525,7 +523,6 @@
      const isReturn = Boolean(r.isReturnEstimated);
      if (isReturn) stops = stops.reverse();
    
-     // Route starting time Cheyyar/Origin-il ninnu mathrame calculate cheyyavu
      const busBaseMin = r.min;
      const busEndMin = busBaseMin + totalTripTime;
    
@@ -786,27 +783,25 @@
        const tr = document.createElement("tr");
        tr.tabIndex = 0;
    
+       const originalDeparture = r.time || minToTimeStr(r.min);
+   
        const tdTime = document.createElement("td");
        tdTime.className = "td-time";
-       const originalTime = r.time || minToTimeStr(r.min);
-    
-    // User intermediate stop thedi, offset calculation irundhal note kaattuvom
-    const isIntermediateSearch = Boolean(qFrom && r.isOffset);
-
-    tdTime.innerHTML = `
-      <div class="mobile-time-group">
-        <span>${r.displayTime}</span>
-        <div class="badge-row-mobile">
-          ${getCountdownBadge(r.displayMin)}
-          ${getDirectLiveStatusBadge(r)}
-        </div>
-        ${isIntermediateSearch ? `
-          <span class="mobile-departure-note">
-            📍 At ${qFrom.toUpperCase()} • Departs Origin: ${originalTime}
-          </span>
-        ` : ''}
-      </div>
-    `;
+       tdTime.innerHTML = `
+         <div class="mobile-time-group">
+           <span>${r.displayTime}</span>
+           <div class="badge-row-mobile">
+             ${getCountdownBadge(r.displayMin)}
+             ${getDirectLiveStatusBadge(r)}
+           </div>
+           ${(qFrom && r.isOffset) ? `
+             <span class="mobile-departure-note">
+               📍 At ${qFrom.toUpperCase()} • Departs Origin: ${originalDeparture}
+             </span>
+           ` : ''}
+         </div>
+       `;
+   
        const tdBus = document.createElement("td");
        tdBus.className = "td-bus";
    
@@ -873,7 +868,7 @@
        const tdFrom = document.createElement("td");
        tdFrom.className = "td-from";
        
-       // Intermediate origin check
+       // Intermediate origin check (e.g. Vembakkam)
        if (qFrom && r.isOffset) {
          const cleanFromQuery = qFrom.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
          tdFrom.innerHTML = `<strong>${cleanFromQuery}</strong> <small style="display:block; font-size:10px; color:#838a9c;">(Orig: ${ORIGIN(r)})</small>`;
@@ -1063,7 +1058,7 @@
    }
    
    /* =========================================================
-      LAST BUS ALERT ENGINE (EVENING 7:00 PM TO MIDNIGHT)
+      10. LAST BUS ALERT ENGINE (EVENING 7:00 PM TO MIDNIGHT)
       ========================================================= */
    
    function updateLastBusBanner() {
@@ -1174,7 +1169,7 @@
    });
    
    /* =========================================================
-      10. FIND NEXT BUS ACTION
+      11. FIND NEXT BUS ACTION
       ========================================================= */
    
    $("next-btn").addEventListener("click", () => {
@@ -1245,6 +1240,291 @@
    if (closeDevBtnAction && devModal) closeDevBtnAction.addEventListener("click", () => { devModal.style.display = "none"; });
    if (devModal) devModal.addEventListener("click", e => { if (e.target === devModal) devModal.style.display = "none"; });
    
+/* =========================================================
+   12. 3-CLIP SYNCHRONIZED AUDIO & TEXT VOICE ENGINE
+   - Audio 1 (1.ogg) + Text 1 (Greeting)
+   - Audio 2 (2.ogg) + Text 2 (Success)
+   - Audio 3 (3.ogg) + Text 3 (Fallback)
+   * Strict Rule: Audio mudiyura varai adhan text maraiaadhu!
+   ========================================================= */
+
+   const avatarWidget = $("ai-avatar-widget");
+   const avatarBubble = $("voice-bubble");
+   const avatarText = $("voice-bubble-text");
+   
+   let recognition = null;
+   let currentAudio = null;
+   let hasAutoTriggered = false;
+   let silenceTimer = null;
+   let isPlayingAudio = false;
+   
+   // Ungaloda Exact Audio Clips
+   const AUDIO_CLIPS = {
+     greeting: new Audio("audio/1.ogg"),
+     success: new Audio("audio/2.ogg"),
+     fallback: new Audio("audio/3.ogg")
+   };
+   
+   // Strict Playback Controller with Text Binding
+   function playAudioWithText(clipKey, textMessage, onFinished) {
+     // Pazhaiya audio irundha stop pannuvom
+     if (currentAudio) {
+       currentAudio.pause();
+       currentAudio.currentTime = 0;
+     }
+   
+     // Bubble-ai open panni correct text-ai set pannuvom
+     if (avatarBubble) avatarBubble.style.display = "block";
+     if (avatarText) avatarText.textContent = textMessage;
+   
+     const audio = AUDIO_CLIPS[clipKey];
+     if (!audio) {
+       isPlayingAudio = false;
+       if (onFinished) onFinished();
+       return;
+     }
+   
+     isPlayingAudio = true;
+     currentAudio = audio;
+     audio.currentTime = 0;
+   
+     if (avatarWidget) avatarWidget.classList.add("speaking");
+   
+     audio.play()
+       .then(() => {
+         audio.onended = () => {
+           isPlayingAudio = false;
+           currentAudio = null;
+           if (avatarWidget) avatarWidget.classList.remove("speaking");
+           // Audio complete aana piragu dhaan next callback trigger aagum
+           if (onFinished) onFinished();
+         };
+       })
+       .catch(() => {
+         isPlayingAudio = false;
+         currentAudio = null;
+         if (avatarWidget) avatarWidget.classList.remove("speaking");
+         if (onFinished) onFinished();
+       });
+   }
+   
+   function stopListening() {
+     if (silenceTimer) {
+       clearTimeout(silenceTimer);
+       silenceTimer = null;
+     }
+     if (recognition) {
+       try { recognition.abort(); } catch(e) {}
+     }
+     if (avatarWidget) avatarWidget.classList.remove("listening");
+   }
+   
+   function handleFallback() {
+     stopListening();
+   
+     // AUDIO 3 + TEXT 3: Fallback Audio mudiyum varai Text 3 mattume screen-la irukkum
+     playAudioWithText(
+       "fallback",
+       "ஊரு நேம் சரியா சொல்லுங்க, எனக்கு கேக்கல!",
+       () => {
+         // Audio 3 mudindhavudan 2.5s kazhithu bubble close aagum
+         setTimeout(() => {
+           if (!isPlayingAudio && avatarBubble) {
+             avatarBubble.style.display = "none";
+           }
+         }, 2500);
+       }
+     );
+   }
+   
+   function startVoiceAssistant() {
+     if (isPlayingAudio) return; // Oru audio play aagi irundhaa pudhusa start aagadhu
+   
+     // 1. AUDIO 1 + TEXT 1: Greeting mudiyum varaikkum Text 1 mattum dhaan screen-la irukkum
+     playAudioWithText(
+       "greeting",
+       "வணக்கம்! இது உங்க செய்யார் பஸ் ஆப். உங்களுக்கு எந்த ஊருக்கு பஸ் பாக்கணும்?",
+       () => {
+         // AUDIO 1 FULL-AA MUDINDHA PINBU MATTUME MIC OPEN AAGUM
+         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+         if (!SpeechRecognition) {
+           if (avatarText) avatarText.textContent = "Browser-la mic support illa.";
+           return;
+         }
+   
+         stopListening();
+         let hasCapturedSpeech = false;
+   
+         recognition = new SpeechRecognition();
+         recognition.lang = "ta-IN";
+         recognition.interimResults = false;
+   
+         recognition.onstart = () => {
+           if (avatarWidget) avatarWidget.classList.add("listening");
+           // Audio 1 mudinja piragu dhaan mic text maaranum
+           if (avatarText) avatarText.textContent = "கேட்கிறது... பேசுங்கள் (5s)...";
+   
+           // 5s silence wait timer
+           silenceTimer = setTimeout(() => {
+             if (!hasCapturedSpeech && !isPlayingAudio) {
+               handleFallback();
+             }
+           }, 5000);
+         };
+   
+         recognition.onresult = (e) => {
+           if (isPlayingAudio) return;
+   
+           hasCapturedSpeech = true;
+           if (silenceTimer) clearTimeout(silenceTimer);
+   
+           const transcript = e.results[0][0].transcript.toLowerCase().trim();
+   
+           let matchedCity = "";
+           if (transcript.includes("kanchi") || transcript.includes("காஞ்சி")) matchedCity = "Kanchipuram";
+           else if (transcript.includes("arani") || transcript.includes("ஆரணி")) matchedCity = "Arani";
+           else if (transcript.includes("vellore") || transcript.includes("வேலூர்")) matchedCity = "Vellore";
+           else if (transcript.includes("vandavasi") || transcript.includes("வந்தவாசி")) matchedCity = "Vandavasi";
+           else if (transcript.includes("chennai") || transcript.includes("சென்னை")) matchedCity = "Chennai";
+           else if (transcript.includes("vembakkam") || transcript.includes("வெம்பாக்கம்")) matchedCity = "Vembakkam";
+           else if (transcript.includes("arcot") || transcript.includes("ஆற்காடு")) matchedCity = "Arcot";
+           else if (transcript.includes("gingee") || transcript.includes("செஞ்சி")) matchedCity = "Gingee";
+           else if (transcript.includes("puducherry") || transcript.includes("பாண்டி") || transcript.includes("புதுச்சேரி")) matchedCity = "Puducherry";
+           else if (transcript.includes("kalavai") || transcript.includes("கலவை")) matchedCity = "Kalavai";
+   
+           if (matchedCity) {
+             stopListening();
+             fromEl.value = "Cheyyar";
+             toEl.value = matchedCity;
+             searchEl.value = "";
+             render();
+   
+             // AUDIO 2 + TEXT 2: Success Audio mudiyum varaikkum Text 2 mattume screen-la irukkum
+             playAudioWithText(
+               "success",
+               `நீங்க கேட்ட ${matchedCity} பஸ் டீடைல்ஸ் இதோ உங்களுக்காக!`,
+               () => {
+                 // Audio 2 mudindhadhum 3s kazhithu bubble close aagum
+                 setTimeout(() => {
+                   if (!isPlayingAudio && avatarBubble) {
+                     avatarBubble.style.display = "none";
+                   }
+                 }, 3000);
+               }
+             );
+           } else {
+             handleFallback();
+           }
+         };
+   
+         recognition.onerror = (e) => {
+           if (e.error === "no-speech" && !hasCapturedSpeech) return;
+           if (!hasCapturedSpeech && !isPlayingAudio) handleFallback();
+         };
+   
+         recognition.onend = () => {
+           if (!hasCapturedSpeech && silenceTimer && !isPlayingAudio) {
+             try { recognition.start(); } catch(err) {}
+           }
+         };
+   
+         try {
+           recognition.start();
+         } catch(err) {
+           if (avatarWidget) avatarWidget.classList.remove("listening");
+         }
+       }
+     );
+   }
+   // 3. Ultra-Smooth Drag & Drop Anywhere on Screen
+   function makeWidgetDraggable(el) {
+     if (!el) return;
+     let isDragging = false;
+     let startX, startY, initialLeft, initialTop;
+     let hasMoved = false;
+   
+     function onPointerDown(e) {
+       // Only drag with primary touch/click
+       if (e.button !== undefined && e.button !== 0) return;
+       isDragging = true;
+       hasMoved = false;
+   
+       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+   
+       const rect = el.getBoundingClientRect();
+       startX = clientX;
+       startY = clientY;
+       initialLeft = rect.left;
+       initialTop = rect.top;
+   
+       // Switch to absolute positioning from current bounding rect
+       el.style.bottom = "auto";
+       el.style.right = "auto";
+       el.style.left = `${initialLeft}px`;
+       el.style.top = `${initialTop}px`;
+   
+       document.addEventListener("mousemove", onPointerMove, { passive: false });
+       document.addEventListener("touchmove", onPointerMove, { passive: false });
+       document.addEventListener("mouseup", onPointerUp);
+       document.addEventListener("touchend", onPointerUp);
+     }
+   
+     function onPointerMove(e) {
+       if (!isDragging) return;
+       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+   
+       const deltaX = clientX - startX;
+       const deltaY = clientY - startY;
+   
+       if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+         hasMoved = true;
+       }
+   
+       const maxX = window.innerWidth - el.offsetWidth - 10;
+       const maxY = window.innerHeight - el.offsetHeight - 10;
+   
+       let newX = Math.min(Math.max(10, initialLeft + deltaX), maxX);
+       let newY = Math.min(Math.max(10, initialTop + deltaY), maxY);
+   
+       el.style.left = `${newX}px`;
+       el.style.top = `${newY}px`;
+   
+       e.preventDefault();
+     }
+   
+     function onPointerUp() {
+       isDragging = false;
+       document.removeEventListener("mousemove", onPointerMove);
+       document.removeEventListener("touchmove", onPointerMove);
+       document.removeEventListener("mouseup", onPointerUp);
+       document.removeEventListener("touchend", onPointerUp);
+   
+       // If user simply tapped without dragging, trigger assistant
+       if (!hasMoved) {
+         startVoiceAssistant();
+       }
+     }
+   
+     el.addEventListener("mousedown", onPointerDown);
+     el.addEventListener("touchstart", onPointerDown, { passive: true });
+   }
+   
+   makeWidgetDraggable(avatarWidget);
+   
+   // Initial Auto-Trigger on screen tap after splash screen ends
+   document.addEventListener("click", () => {
+     if (!hasAutoTriggered && document.body.classList.contains("app-ready")) {
+       hasAutoTriggered = true;
+       startVoiceAssistant();
+     }
+   }, { once: true });
+   
+   /* =========================================================
+      13. APP LOADING & INITIALIZATION
+      ========================================================= */
+   
    function initLoadingScreen() {
      const splashEl = document.getElementById("app-loading-screen");
      const fillEl = document.getElementById("progress-fill");
@@ -1263,6 +1543,7 @@
            splashEl.classList.add("loaded");
            setTimeout(() => {
              splashEl.style.display = "none";
+             document.body.classList.add("app-ready"); // Voice widget appear aagum
            }, 500);
          }, 400);
        } else {
@@ -1271,10 +1552,6 @@
        }
      }, 35);
    }
-   
-   /* =========================================================
-      11. REAL-TIME AUTO UPDATE & INITIALIZATION
-      ========================================================= */
    
    setInterval(() => {
      const now = nowMin();

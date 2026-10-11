@@ -2350,3 +2350,410 @@
       color: var(--text-muted);
     }
   }
+  /* =========================================================
+   AI VOICE ASSISTANT FLOATING WIDGET
+   ========================================================= */
+.ai-voice-widget {
+  position: fixed !important;
+  bottom: 26px !important;
+  right: 22px !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 10px !important;
+  pointer-events: auto !important;
+}
+
+.voice-bubble {
+  background: rgba(14, 16, 22, 0.95) !important;
+  border: 1px solid rgba(255, 92, 53, 0.45) !important;
+  border-radius: 16px 16px 4px 16px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8) !important;
+  max-width: 240px !important;
+  backdrop-filter: blur(12px);
+  animation: modalIn 0.25s ease;
+}
+
+.voice-bubble .ai-badge {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.8px !important;
+  color: var(--primary) !important;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.voice-bubble p {
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #f6f7fb !important;
+  line-height: 1.4 !important;
+}
+
+.voice-trigger-btn {
+  width: 54px !important;
+  height: 54px !important;
+  border-radius: 50% !important;
+  background: var(--grad) !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 8px 24px var(--primary-glow) !important;
+  display: grid !important;
+  place-items: center !important;
+  position: relative !important;
+  cursor: pointer !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.voice-trigger-btn:hover {
+  transform: scale(1.08) !important;
+}
+
+.voice-trigger-btn.listening {
+  background: linear-gradient(135deg, #2fd68f 0%, #10b981 100%) !important;
+  box-shadow: 0 8px 26px rgba(47, 214, 143, 0.5) !important;
+  border-color: #2fd68f !important;
+}
+
+.voice-trigger-btn.listening .mic-wave {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid #2fd68f;
+  animation: radarWave 1.3s infinite ease-out;
+}
+
+.mic-icon {
+  font-size: 22px !important;
+}
+
+@media (max-width: 768px) {
+  .ai-voice-widget {
+    bottom: 20px !important;
+    right: 16px !important;
+  }
+  .voice-trigger-btn {
+    width: 50px !important;
+    height: 50px !important;
+  }
+}
+/* Splash screen irukura varai Voice widget hide aaganum */
+.ai-voice-widget {
+  position: fixed !important;
+  bottom: 26px !important;
+  right: 22px !important;
+  z-index: 999999 !important;
+  display: none !important; /* Default hidden */
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 10px !important;
+  pointer-events: auto !important;
+}
+
+/* App ready aana piragu mattum display aagum */
+body.app-ready .ai-voice-widget {
+  display: flex !important;
+  animation: modalIn 0.4s ease;
+}
+/* =========================================================
+   PREMIUM DRAGGABLE 3D GIRL ASSISTANT
+   ========================================================= */
+
+   .ai-avatar-widget {
+    position: fixed !important;
+    bottom: 28px !important;
+    right: 22px !important;
+    z-index: 999999 !important;
+    display: none !important; /* Splash screen mudiyum varai hide aagum */
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: 12px !important;
+    cursor: grab !important;
+    user-select: none !important;
+    touch-action: none !important; /* Smooth touch dragging-kku */
+  }
+  
+  body.app-ready .ai-avatar-widget {
+    display: flex !important;
+    animation: avatarPopIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes avatarPopIn {
+    0% { transform: scale(0.6) translateY(40px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  
+  .ai-avatar-widget:active {
+    cursor: grabbing !important;
+  }
+  
+  /* Avatar Frame Outer */
+  .avatar-character-frame {
+    position: relative;
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .avatar-character-frame:hover {
+    transform: scale(1.08);
+  }
+  
+  .avatar-graphic-wrap {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #181b26, #0e1017);
+    border: 2px solid rgba(255, 92, 53, 0.6);
+    box-shadow: 0 10px 28px rgba(255, 92, 53, 0.45), inset 0 2px 6px rgba(255, 255, 255, 0.2);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    z-index: 2;
+  }
+  
+  .girl-avatar-svg {
+    width: 100%;
+    height: 100%;
+    transform: translateY(2px);
+  }
+  
+  /* Glowing Aura Rings */
+  .avatar-glow-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #ff5c35, #8b5cf6, #2fd68f, #ff5c35);
+    filter: blur(4px);
+    opacity: 0.6;
+    animation: spinAura 5s linear infinite;
+    z-index: 1;
+  }
+  
+  @keyframes spinAura {
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Speaking Animation (vaai pesum bodhu pulse aagum) */
+  .ai-avatar-widget.speaking .avatar-glow-ring {
+    opacity: 1;
+    filter: blur(8px);
+    animation: spinAura 2s linear infinite, speakingGlow 0.6s ease-in-out infinite alternate;
+  }
+  
+  @keyframes speakingGlow {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.18); }
+  }
+  
+  .ai-avatar-widget.speaking .avatar-mouth {
+    animation: mouthMove 0.22s ease-in-out infinite alternate;
+    stroke: #ff3b30 !important;
+    stroke-width: 3.5px !important;
+  }
+  
+  @keyframes mouthMove {
+    0% { d: path("M44 58 Q50 60 56 58"); }
+    100% { d: path("M43 56 Q50 67 57 56"); }
+  }
+  
+  /* Listening Mode (Mic Active - Green Waves) */
+  .ai-avatar-widget.listening .avatar-graphic-wrap {
+    border-color: #2fd68f !important;
+    box-shadow: 0 10px 30px rgba(47, 214, 143, 0.6) !important;
+  }
+  
+  .ai-avatar-widget.listening .avatar-pulse-waves {
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    border: 2px solid #2fd68f;
+    animation: listenPulse 1.2s infinite ease-out;
+    z-index: 0;
+  }
+  
+  @keyframes listenPulse {
+    0% { transform: scale(0.9); opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+  
+ /* =========================================================
+   AVATAR WIDGET - FIXED POSITIONING & OVERLAP FIX
+   ========================================================= */
+
+.ai-avatar-widget {
+  position: fixed !important;
+  bottom: 35px !important;
+  right: 25px !important;
+  z-index: 9999999 !important;
+  display: none !important;
+  width: 78px !important;
+  height: 78px !important;
+  cursor: grab !important;
+  user-select: none !important;
+  touch-action: none !important;
+}
+
+body.app-ready .ai-avatar-widget {
+  display: block !important;
+  animation: avatarPopIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-avatar-widget:active {
+  cursor: grabbing !important;
+}
+
+/* 1. SPEECH BUBBLE - AVATAR CIRCLE MELA FLOATING POSITION */
+.avatar-speech-bubble {
+  position: absolute !important;
+  bottom: 88px !important; /* Girl circle mele neat aagi nillutthe */
+  right: 0 !important;
+  background: rgba(14, 17, 24, 0.96) !important;
+  border: 1px solid rgba(255, 92, 53, 0.55) !important;
+  border-radius: 16px 16px 4px 16px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85) !important;
+  width: 220px !important;
+  max-width: 240px !important;
+  backdrop-filter: blur(14px) !important;
+  pointer-events: none !important;
+  animation: modalIn 0.25s ease;
+  z-index: 1000 !important;
+}
+
+.avatar-speech-bubble .bubble-tag {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.9px !important;
+  color: var(--primary) !important;
+  margin-bottom: 4px !important;
+}
+
+.avatar-speech-bubble p {
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #f1f5f9 !important;
+  line-height: 1.4 !important;
+}
+
+/* 2. GIRL CHARACTER FRAME - DIRECT FIXED SIZE */
+.avatar-character-frame {
+  position: relative !important;
+  width: 78px !important;
+  height: 78px !important;
+  border-radius: 50% !important;
+  display: grid !important;
+  place-items: center !important;
+  z-index: 10 !important;
+  transition: transform 0.25s ease;
+}
+
+.avatar-character-frame:hover {
+  transform: scale(1.06);
+}
+
+.avatar-graphic-wrap {
+  position: relative !important;
+  width: 74px !important;
+  height: 74px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle at 50% 35%, #2a2d3d 0%, #0c0e15 100%) !important;
+  border: 2.5px solid #ff5c35 !important;
+  box-shadow: 0 10px 28px rgba(255, 92, 53, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.3) !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  z-index: 2 !important;
+}
+
+.real-girl-avatar-img {
+  width: 100% !important;
+  height: auto !important;
+  object-fit: cover !important;
+  transform-origin: 50% 90% !important;
+  transform: translateY(2px) scale(1.12) !important;
+  pointer-events: none !important;
+  animation: naturalHeadIdle 3.8s ease-in-out infinite alternate;
+}
+
+@keyframes naturalHeadIdle {
+  0% { transform: translateY(2px) rotate(-1deg) scale(1.12); }
+  50% { transform: translateY(0.5px) rotate(1deg) scale(1.13); }
+  100% { transform: translateY(1.5px) rotate(-0.5deg) scale(1.12); }
+}
+
+.ai-avatar-widget.speaking .real-girl-avatar-img {
+  animation: realisticTalkingHead 0.45s ease-in-out infinite alternate !important;
+}
+
+@keyframes realisticTalkingHead {
+  0% { transform: translateY(2px) rotate(-3deg) scale(1.12); }
+  50% { transform: translateY(-1.5px) rotate(2deg) scale(1.15); }
+  100% { transform: translateY(0px) rotate(3deg) scale(1.13); }
+}
+
+/* Glow rings */
+.avatar-glow-ring {
+  position: absolute !important;
+  inset: -4px !important;
+  border-radius: 50% !important;
+  background: conic-gradient(from 0deg, #ff5c35, #a855f7, #00f0ff, #ff5c35) !important;
+  filter: blur(5px) !important;
+  opacity: 0.5 !important;
+  animation: spinAura 6s linear infinite;
+  z-index: 1 !important;
+}
+
+@keyframes spinAura {
+  100% { transform: rotate(360deg); }
+}
+
+.ai-avatar-widget.speaking .avatar-glow-ring {
+  opacity: 1 !important;
+  filter: blur(8px) !important;
+  animation: spinAura 2s linear infinite, auraPulse 0.45s ease-in-out infinite alternate !important;
+}
+
+@keyframes auraPulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.2); }
+}
+
+.avatar-status-pill {
+  position: absolute !important;
+  bottom: -6px !important;
+  z-index: 3 !important;
+  font-size: 8.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.8px !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, #ff5c35, #ff8a52) !important;
+  padding: 2.5px 8px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 768px) {
+  .ai-avatar-widget {
+    bottom: 24px !important;
+    right: 18px !important;
+    width: 68px !important;
+    height: 68px !important;
+  }
+  .avatar-character-frame { width: 68px !important; height: 68px !important; }
+  .avatar-graphic-wrap { width: 64px !important; height: 64px !important; }
+  .avatar-speech-bubble {
+    bottom: 76px !important;
+    width: 200px !important;
+  }
+}
