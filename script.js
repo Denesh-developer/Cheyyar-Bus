@@ -442,7 +442,65 @@
      const text = `🚌 *Cheyyar Bus Timings*\n📍 *Route:* ${displayFrom} ➔ ${displayTo}\n🕒 *Time:* ${displayTime}\n🚍 *Bus:* ${BUS(r)}\n\nLive on Cheyyar Bus Hub!`;
      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
    }
-   
+   /* =========================================================
+   DIRECT MOVING STATUS BADGE GENERATOR
+   ========================================================= */
+function getDirectLiveStatusBadge(r) {
+  const currentMinutes = nowMin();
+  let stops = getRouteStops(r);
+
+  let offsetTable = OFFSETS_ARCOT;
+  if (stops === ROUTE_VELLORE_SIVAJI) offsetTable = OFFSETS_SIVAJI;
+  else if (stops === ROUTE_KANCHI_VEMBAKKAM) offsetTable = OFFSETS_KANCHI_VEMBAKKAM;
+  else if (stops === ROUTE_KANCHI_DIRECT) offsetTable = OFFSETS_KANCHI_DIRECT;
+  else if (stops === ROUTE_VANDAVASI_DIRECT) offsetTable = OFFSETS_VANDAVASI;
+  else if (stops === ROUTE_ARANI_SV_NAGARAM) offsetTable = OFFSETS_ARANI_SV_NAGARAM;
+  else if (stops === ROUTE_KORUKKAI) offsetTable = OFFSETS_KORUKKAI;
+  else if (stops === ROUTE_THAVASI) offsetTable = OFFSETS_THAVASI;
+  else if (stops === ROUTE_KALAVAI) offsetTable = OFFSETS_KALAVAI;
+  else if (stops === ROUTE_PARASUR) offsetTable = OFFSETS_PARASUR;
+  else if (stops === ROUTE_GINGEE) offsetTable = OFFSETS_GINGEE;
+  else if (stops === ROUTE_PUDUCHERRY) offsetTable = OFFSETS_PUDUCHERRY;
+
+  const totalTripTime = Math.max(...Object.values(offsetTable)) || 60;
+  const isReturn = Boolean(r.isReturnEstimated);
+  if (isReturn) stops = [...stops].reverse();
+
+  const busStartMin = r.displayMin || r.min;
+  const busEndMin = busStartMin + totalTripTime;
+
+  // Bus starting time munnadi irundha:
+  if (currentMinutes < busStartMin) {
+    return `<span class="live-moving-badge departing-soon">⏳ At ${ORIGIN(r)}</span>`;
+  }
+
+  // Bus destination reach aana udan:
+  if (currentMinutes >= busEndMin) {
+    return `<span class="live-moving-badge approaching-dest">🏁 Reached ${FINAL_TO(r)}</span>`;
+  }
+
+  // Bus road-la odittu irukkum pothu current stop-ai identify panrom:
+  let currentStop = ORIGIN(r);
+  for (let i = 0; i < stops.length; i++) {
+    const k = stops[i].toLowerCase().trim();
+    let off = offsetTable[k] || 0;
+    if (isReturn) off = totalTripTime - off;
+
+    const stopArrivalMin = busStartMin + off;
+    if (currentMinutes >= stopArrivalMin) {
+      currentStop = stops[i].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    } else {
+      break;
+    }
+  }
+
+  return `
+    <span class="live-moving-badge on-route">
+      <span class="pulse-dot-small"></span>
+      Near ${currentStop}
+    </span>
+  `;
+}
    /* =========================================================
       6. VIRTUAL LIVE TRACKING GENERATOR & POPUP CONTROLLER
       ========================================================= */
@@ -716,9 +774,11 @@ if (showUpcomingOnly) {
          <div class="mobile-time-group">
            <span>${r.displayTime}</span>
            ${getCountdownBadge(r.displayMin)}
+           ${getDirectLiveStatusBadge(r)}
            ${r.isOffset ? `<small style="display:block; font-size:10px; color:#ff7a45; font-weight:600;">(+${r.offsetMins}m from Cheyyar)</small>` : ''}
          </div>
        `;
+       
    
        const tdBus = document.createElement("td");
        tdBus.className = "td-bus";
