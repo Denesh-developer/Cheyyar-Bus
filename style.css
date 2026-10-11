@@ -2245,3 +2245,108 @@
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+/* Mobile Time Container Fix */
+@media (max-width: 768px) {
+  .timetable td.td-time {
+    grid-area: time;
+    width: 100% !important;
+  }
+
+  .mobile-time-group {
+    display: flex !important;
+    flex-direction: column !important; /* Stack vertically so nothing cuts off */
+    align-items: flex-start !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+
+  .mobile-time-group > span:first-child {
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    color: var(--text) !important;
+  }
+
+  .mobile-time-group .badge-row-mobile {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mobile-departure-note {
+    display: block !important;
+    font-size: 11px !important;
+    color: #ff7a45 !important;
+    font-weight: 700 !important;
+    margin-top: 2px !important;
+    line-height: 1.3 !important;
+    white-space: normal !important;
+  }
+}
+/* =========================================================
+   DESKTOP VIEW POLISH FOR TIME CELL & DEPARTURE NOTE
+   ========================================================= */
+
+   @media (min-width: 769px) {
+    .td-time {
+      min-width: 200px;
+      vertical-align: middle;
+    }
+  
+    .mobile-time-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+  
+    .mobile-time-group > span:first-child {
+      font-family: var(--font-display);
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      line-height: 1;
+    }
+  
+    .badge-row-mobile {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+  
+    .mobile-departure-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #ff8a52;
+      background: rgba(255, 92, 53, 0.08);
+      border: 1px solid rgba(255, 92, 53, 0.22);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+  
+    /* Table Cell Vertical Balance */
+    .timetable td {
+      padding: 16px 18px;
+    }
+  
+    .td-from strong,
+    .td-dest strong {
+      font-size: 14.5px;
+      font-weight: 800;
+    }
+  
+    .td-from small {
+      display: block;
+      margin-top: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+  }

@@ -788,15 +788,25 @@
    
        const tdTime = document.createElement("td");
        tdTime.className = "td-time";
-       tdTime.innerHTML = `
-         <div class="mobile-time-group">
-           <span>${r.displayTime}</span>
-           ${getCountdownBadge(r.displayMin)}
-           ${getDirectLiveStatusBadge(r)}
-           ${r.isOffset ? `<small style="display:block; font-size:10px; color:#ff7a45; font-weight:600;">(At ${qFrom.toUpperCase()} • Departs Cheyyar: ${r.time})</small>` : ''}
-         </div>
-       `;
-   
+       const originalTime = r.time || minToTimeStr(r.min);
+    
+    // User intermediate stop thedi, offset calculation irundhal note kaattuvom
+    const isIntermediateSearch = Boolean(qFrom && r.isOffset);
+
+    tdTime.innerHTML = `
+      <div class="mobile-time-group">
+        <span>${r.displayTime}</span>
+        <div class="badge-row-mobile">
+          ${getCountdownBadge(r.displayMin)}
+          ${getDirectLiveStatusBadge(r)}
+        </div>
+        ${isIntermediateSearch ? `
+          <span class="mobile-departure-note">
+            📍 At ${qFrom.toUpperCase()} • Departs Origin: ${originalTime}
+          </span>
+        ` : ''}
+      </div>
+    `;
        const tdBus = document.createElement("td");
        tdBus.className = "td-bus";
    
