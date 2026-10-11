@@ -87,7 +87,7 @@
      "mamandur": 35, "dusi": 40, "sevlimedu": 47, "kanchipuram": 52
    };
    
-   /* 4. Kanchipuram Route 2 (via Vembakkam) */
+   /* 4. Kanchipuram Route 2 (via Vembakkam) - village route, ~5 min longer than direct (52 -> 57) */
    const ROUTE_KANCHI_VEMBAKKAM = [
      "cheyyar", "arani koot road", "duli", "pappanthangal", "sirugattur",
      "ramakrishnapuram", "hasanamapet", "perungattur", "alanthagal",
@@ -96,11 +96,22 @@
    ];
    
    const OFFSETS_KANCHI_VEMBAKKAM = {
-     "cheyyar": 0, "arani koot road": 7, "duli": 13, "pappanthangal": 18,
-     "sirugattur": 24, "ramakrishnapuram": 28, "hasanamapet": 33,
-     "perungattur": 38, "alanthagal": 43, "vembakkam": 48,
-     "pillanthangal": 53, "kolivakkam": 58, "iyyankkulam": 63,
-     "abdullapuram": 68, "sevlimedu": 74, "kanchipuram": 80
+     "cheyyar": 0,
+     "arani koot road": 5,
+     "duli": 9,
+     "pappanthangal": 13,
+     "sirugattur": 17,
+     "ramakrishnapuram": 20,
+     "hasanamapet": 24,
+     "perungattur": 27,
+     "alanthagal": 31,
+     "vembakkam": 34,
+     "pillanthangal": 38,
+     "kolivakkam": 41,
+     "iyyankkulam": 45,
+     "abdullapuram": 48,
+     "sevlimedu": 53,
+     "kanchipuram": 57
    };
    
    /* 5. Vandavasi Route (Direct) */
@@ -199,6 +210,8 @@
    const DATA = window.TIMETABLE;
    if (!DATA || !DATA.routes) {
      rowsEl.innerHTML = '<tr><td colspan="6" class="empty-cell">Timetable data failed to load</td></tr>';
+     const stuckSplash = document.getElementById("app-loading-screen");
+     if (stuckSplash) stuckSplash.remove();
      throw new Error("data/timetable.js did not load");
    }
    
@@ -258,8 +271,34 @@
      return rKey.includes("vembakkam") || dest.includes("vembakkam") || dest.includes("வெம்பாக்கம்") || dest.includes("பெருங்கட்டூர்");
    }
    
+   /* ---- RETURN TRIPS (e.g. Kanchipuram -> Cheyyar) ----
+      A return bus has its destination = Cheyyar and its origin = another town.
+      We reuse the outbound stop list, just reversed. */
+   function isReturnBus(r) {
+     const from = (r.from || "").toLowerCase();
+     const to = ((r.to || "") + " " + (r.toTa || "")).toLowerCase();
+     return !from.includes("cheyyar") && (to.includes("cheyyar") || to.includes("செய்யாறு"));
+   }
+
+   function reverseStops(fwd) {
+     if (!fwd._rev) {
+       const rev = fwd.slice().reverse();
+       rev._fwd = fwd;
+       fwd._rev = rev;
+     }
+     return fwd._rev;
+   }
+
    function getRouteStops(r) {
      if (r.stops && Array.isArray(r.stops)) return r.stops;
+
+     if (isReturnBus(r)) {
+       const outbound = Object.assign({}, r, {
+         from: "Cheyyar", fromTa: "செய்யாறு",
+         to: r.from, toTa: r.fromTa
+       });
+       return reverseStops(getRouteStops(outbound));
+     }
      
      if (isSivajiBus(r)) return ROUTE_VELLORE_SIVAJI;
      if (isVembakkamRoute(r)) return ROUTE_KANCHI_VEMBAKKAM;
@@ -310,7 +349,9 @@
      const q = searchFrom.toLowerCase().trim();
    
      let offsetTable = OFFSETS_ARCOT;
-     const stops = getRouteStops(r);
+     const rawStops = getRouteStops(r);
+     const reversed = !!rawStops._fwd;
+     const stops = reversed ? rawStops._fwd : rawStops;
    
      if (stops === ROUTE_VELLORE_SIVAJI) offsetTable = OFFSETS_SIVAJI;
      else if (stops === ROUTE_KANCHI_VEMBAKKAM) offsetTable = OFFSETS_KANCHI_VEMBAKKAM;
@@ -324,7 +365,17 @@
      else if (stops === ROUTE_GINGEE) offsetTable = OFFSETS_GINGEE;
      else if (stops === ROUTE_PUDUCHERRY) offsetTable = OFFSETS_PUDUCHERRY;
    
-     const matchedKey = Object.keys(offsetTable).find(k => k.includes(q) || q.includes(k));
+     if (reversed) {
+       const total = Math.max(...Object.values(offsetTable));
+       const rev = {};
+       Object.keys(offsetTable).forEach(k => { rev[k] = total - offsetTable[k]; });
+       offsetTable = rev;
+     }
+
+     const keys = Object.keys(offsetTable);
+     const matchedKey = keys.find(k => k === q)
+       || keys.filter(k => q.includes(k)).sort((a, b) => b.length - a.length)[0]
+       || keys.filter(k => k.includes(q)).sort((a, b) => a.length - b.length)[0];
      if (!matchedKey || offsetTable[matchedKey] === 0) {
        return { timeStr: r.time, min: r.min, isOffset: false, offsetMins: 0 };
      }
@@ -351,6 +402,53 @@
      });
    });
    
+   /* ---- AUTO-GENERATED RETURN TRIPS (Kanchipuram -> Cheyyar) ----
+      Built from the existing Cheyyar -> Kanchipuram entries:
+      return time = outbound time + travel time + layover.
+      These are ESTIMATES (flagged "Check board"). Once you add a real
+      Kanchipuram -> Cheyyar route to data/timetable.js, this switches itself off. */
+   const AUTO_RETURN_KANCHI = true;
+   const RETURN_LAYOVER_MIN = 15;
+
+   if (AUTO_RETURN_KANCHI) {
+     const hasRealReturn = Object.keys(ROUTES).some(k => ROUTES[k].rows.some(isReturnBus));
+     if (!hasRealReturn) {
+       const autoRows = [];
+       Object.keys(ROUTES).forEach(k => ROUTES[k].rows.forEach(r => {
+         const to = ((r.to || "") + " " + (r.toTa || "")).toLowerCase();
+         const toKanchi = to.includes("kanchipuram") || to.includes("காஞ்சிபுரம்");
+         const viaOther = to.includes("chennai") || to.includes("சென்னை");
+         if (!toKanchi || viaOther) return;
+         const calc = getCalculatedTime(r, "kanchipuram");
+         const travel = calc.isOffset ? calc.offsetMins : 52;
+         const rmin = (r.min + travel + RETURN_LAYOVER_MIN) % 1440;
+         autoRows.push({
+           time: minToTimeStr(rmin), min: rmin,
+           bus: r.bus, busTa: r.busTa,
+           from: "Kanchipuram", fromTa: "காஞ்சிபுரம்",
+           to: "Cheyyar", toTa: "செய்யாறு",
+           stops: reverseStops(getRouteStops(r)),
+           routeKey: "kanchipuram-to-cheyyar-auto",
+           verify: true, auto: true
+         });
+       }));
+       if (autoRows.length) {
+         autoRows.sort((a, b) => a.min - b.min);
+         ROUTES["kanchipuram-to-cheyyar-auto"] = {
+           id: "kanchipuram-to-cheyyar-auto",
+           name: "Kanchipuram → Cheyyar (est.)",
+           tamil: "காஞ்சிபுரம் → செய்யாறு (தோராயம்)",
+           generated: true,
+           rows: autoRows
+         };
+       }
+     }
+   }
+
+   function has3D(k) {
+     return !!(window.Bus3D && ROUTES[k] && !ROUTES[k].generated);
+   }
+
    const IDS = Object.keys(ROUTES);
    let current = IDS[0];
    
@@ -363,7 +461,7 @@
    
    function populateLocationDatalists() {
      const fromSet = new Set(["Cheyyar", "செய்யாறு"]);
-     const toSet = new Set();
+     const toSet = new Set(["Cheyyar", "செய்யாறு"]);
    
      const allStops = Array.from(new Set([
        ...ROUTE_VELLORE_ARCOT,
@@ -494,6 +592,9 @@
          }
        }
    
+       // A bus cannot be boarded at its final stop
+       if (qFrom && fromIdx !== -1 && stopsList.length > 1 && fromIdx === stopsList.length - 1) return false;
+
        // 2. STRICT TO VALIDATION
        let toIdx = stopsList.length - 1;
        if (qTo) {
@@ -573,7 +674,7 @@
          <div class="mobile-time-group">
            <span>${r.displayTime}</span>
            ${getCountdownBadge(r.displayMin)}
-           ${r.isOffset ? `<small style="display:block; font-size:10px; color:#ff7a45; font-weight:600;">(+${r.offsetMins}m from Cheyyar)</small>` : ''}
+           ${r.isOffset ? `<small style="display:block; font-size:10px; color:#ff7a45; font-weight:600;">(≈ approx · +${r.offsetMins}m from ${ORIGIN(r)})</small>` : ''}
          </div>
        `;
    
@@ -597,7 +698,7 @@
          routeBadge = `<span class="route-tag tag-gingee">📍 வழி: வந்தவாசி ➔ செஞ்சி</span>`;
        } else if (routeId.includes("puducherry") || busDest.includes("puducherry") || busDest.includes("புதுச்சேரி")) {
          routeBadge = `<span class="route-tag tag-puducherry">📍 வழி: திண்டிவனம் ➔ பாண்டி</span>`;
-       } else if (routeId.includes("vembakkam") || busDest.includes("vembakkam") || busDest.includes("பெருங்கட்டூர்")) {
+       } else if (routeId.includes("vembakkam") || (r.stops && r.stops._fwd === ROUTE_KANCHI_VEMBAKKAM) || busDest.includes("vembakkam") || busDest.includes("பெருங்கட்டூர்")) {
          routeBadge = `<span class="route-tag tag-vembakkam">📍 வழி: வெம்பாக்கம்</span>`;
        } else if (routeId.includes("arcot") || busDest.includes("vellore") || busDest.includes("வேலூர்") || busDest.includes("arcot") || busDest.includes("ஆற்காடு")) {
          routeBadge = `<span class="route-tag tag-arcot">📍 வழி: SH-5 ஆற்காடு பைபாஸ்</span>`;
@@ -607,6 +708,8 @@
          routeBadge = `<span class="route-tag tag-kalavai">📍 வழி: கலவை</span>`;
        } else if (routeId.includes("kanchipuram") || busDest.includes("dusi") || busDest.includes("mamandur") || busDest.includes("kanchipuram") || busDest.includes("காஞ்சிபுரம்")) {
          routeBadge = `<span class="route-tag tag-kanchi">📍 வழி: மாமண்டூர் / தூசி</span>`;
+       } else if (routeId.includes("vandavasi") || busDest.includes("vandavasi") || busDest.includes("வந்தவாசி")) {
+         routeBadge = `<span class="route-tag tag-vandavasi">📍 வழி: அனக்காவூர் / ஏச்சூர்</span>`;
        }
    
        tdBus.innerHTML = `
@@ -672,7 +775,7 @@
      if (!activeRow && list.length > 0) {
        activeRow = list[0];
        setActive(list[0]);
-     } else if (activeRow && window.Bus3D && Bus3D.setSign) {
+     } else if (activeRow && has3D(current) && Bus3D.setSign) {
        Bus3D.setSign(current, DEST(activeRow), BUS(activeRow), activeRow.displayTime || activeRow.time);
      }
    }
@@ -682,7 +785,7 @@
      signRows[current] = r;
      rowsEl.querySelectorAll("tr.active").forEach(e => e.classList.remove("active"));
      if (r._el) r._el.classList.add("active");
-     if (window.Bus3D && Bus3D.setSign) {
+     if (has3D(current) && Bus3D.setSign) {
        Bus3D.setSign(current, DEST(r), BUS(r), r.displayTime || r.time);
        Bus3D.focus(current);
      }
@@ -699,7 +802,7 @@
    
      IDS.forEach(routeKey => {
        const routeData = ROUTES[routeKey];
-       if (!routeData || !routeData.rows || routeData.rows.length === 0) return;
+       if (!routeData || routeData.generated || !routeData.rows || routeData.rows.length === 0) return;
    
        const upcomingBus = routeData.rows.find(r => r.min >= now) || routeData.rows[0];
    
@@ -732,7 +835,7 @@
      render();
      updateAllBusSigns();
    
-     if (window.Bus3D && Bus3D.focus) {
+     if (has3D(k) && Bus3D.focus) {
        Bus3D.focus(k);
      }
    }
@@ -773,6 +876,10 @@
    
    function applyLanguage(newLang) {
      lang = newLang;
+     document.querySelectorAll("[data-i18n]").forEach(el => {
+       const v = I18N[lang] && I18N[lang][el.dataset.i18n];
+       if (typeof v === "string") el.textContent = v;
+     });
      document.documentElement.lang = lang;
      localStorage.setItem("cheyyar_bus_lang", lang);
    
@@ -861,7 +968,7 @@
      render();
      setActive(r);
    
-     if (window.Bus3D) {
+     if (has3D(current)) {
        if (Bus3D.setSign) {
          Bus3D.setSign(current, DEST(r), BUS(r), r.displayTime || r.time);
        }
