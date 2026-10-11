@@ -1398,52 +1398,107 @@ function scrollToBusResults() {
          };
    
          recognition.onresult = (e) => {
-           if (isPlayingAudio) return;
-   
-           hasCapturedSpeech = true;
-           if (silenceTimer) clearTimeout(silenceTimer);
-   
-           const transcript = e.results[0][0].transcript.toLowerCase().trim();
-   
-           let matchedCity = "";
-           if (transcript.includes("kanchi") || transcript.includes("காஞ்சி")) matchedCity = "Kanchipuram";
-           else if (transcript.includes("arani") || transcript.includes("ஆரணி")) matchedCity = "Arani";
-           else if (transcript.includes("vellore") || transcript.includes("வேலூர்")) matchedCity = "Vellore";
-           else if (transcript.includes("vandavasi") || transcript.includes("வந்தவாசி")) matchedCity = "Vandavasi";
-           else if (transcript.includes("chennai") || transcript.includes("சென்னை")) matchedCity = "Chennai";
-           else if (transcript.includes("vembakkam") || transcript.includes("வெம்பாக்கம்")) matchedCity = "Vembakkam";
-           else if (transcript.includes("arcot") || transcript.includes("ஆற்காடு")) matchedCity = "Arcot";
-           else if (transcript.includes("gingee") || transcript.includes("செஞ்சி")) matchedCity = "Gingee";
-           else if (transcript.includes("puducherry") || transcript.includes("பாண்டி") || transcript.includes("புதுச்சேரி")) matchedCity = "Puducherry";
-           else if (transcript.includes("kalavai") || transcript.includes("கலவை")) matchedCity = "Kalavai";
-   
-           if (matchedCity) {
-             stopListening();
-             fromEl.value = "Cheyyar";
-             toEl.value = matchedCity;
-             searchEl.value = "";
-             render();
-   
-             // Auto scroll to bus timings list immediately
-             setTimeout(() => {
-               scrollToBusResults();
-             }, 300);
-   
-             playAudioWithText(
-               "success",
-               `நீங்க கேட்ட ${matchedCity} பஸ் டீடைல்ஸ் இதோ உங்களுக்காக!`,
-               () => {
-                 setTimeout(() => {
-                   if (!isPlayingAudio && avatarBubble) {
-                     avatarBubble.style.display = "none";
-                   }
-                 }, 3000);
-               }
-             );
-           } else {
-             handleFallback();
-           }
-         };
+          if (isPlayingAudio) return;
+        
+          hasCapturedSpeech = true;
+          if (silenceTimer) clearTimeout(silenceTimer);
+        
+          const rawTranscript = e.results[0][0].transcript.toLowerCase().trim();
+          console.log("Speech Recognized:", rawTranscript);
+        
+          // 1. Comprehensive Aliases Map
+          const aliasMap = {
+            "hasanamapet": ["hasanamapet", "hasanampet", "hasanampettai", "அசனமாபேட்டை", "அசனமாபேட்ட", "ஹஸனமாபேட்டை", "ஹசனாமாபேட்டை"],
+            "kanchipuram": ["kanchipuram", "kanchi", "காஞ்சிபுரம்", "காஞ்சி"],
+            "cheyyar": ["cheyyar", "cheyyaru", "செய்யாறு", "செய்யார்"],
+            "arani": ["arani", "ஆரணி"],
+            "vellore": ["vellore", "வேலூர்"],
+            "vandavasi": ["vandavasi", "வந்தவாசி"],
+            "arcot": ["arcot", "ஆற்காடு"],
+            "kalavai": ["kalavai", "கலவை"],
+            "vembakkam": ["vembakkam", "வெம்பாக்கம்"],
+            "chennai": ["chennai", "சென்னை"],
+            "gingee": ["gingee", "senji", "செஞ்சி"],
+            "puducherry": ["puducherry", "pondicherry", "பாண்டி", "புதுச்சேரி"],
+            "dusi": ["dusi", "தூசி", "துாசி"],
+            "mamandur": ["mamandur", "மாமண்டூர்"],
+            "sembedu": ["sembedu", "செம்பேடு"]
+          };
+        
+          const detected = [];
+        
+          // 2. Transcript-il search panni duplicate illamal index edukirom
+          Object.keys(aliasMap).forEach(cityName => {
+            const keys = aliasMap[cityName];
+            let earliestIdx = -1;
+        
+            for (const key of keys) {
+              const idx = rawTranscript.indexOf(key);
+              if (idx !== -1) {
+                if (earliestIdx === -1 || idx < earliestIdx) {
+                  earliestIdx = idx;
+                }
+              }
+            }
+        
+            if (earliestIdx !== -1) {
+              // Orey ooru thirumba duplicate aagama verify seigirom
+              detected.push({ name: cityName, index: earliestIdx });
+            }
+          });
+        
+          // Transcript-il sonna order-padi sort
+          detected.sort((a, b) => a.index - b.index);
+        
+          let fromCity = "";
+          let toCity = "";
+        
+          if (detected.length >= 2) {
+            fromCity = detected[0].name;
+            toCity = detected[1].name;
+        
+            // Rendum orey oor-aa irundhaa (bug prevention)
+            if (fromCity === toCity) {
+              fromCity = "cheyyar";
+            }
+          } else if (detected.length === 1) {
+            fromCity = "cheyyar";
+            toCity = detected[0].name;
+          }
+        
+          const capitalize = s => s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        
+          if (toCity && fromCity !== toCity) {
+            stopListening();
+            fromEl.value = capitalize(fromCity);
+            toEl.value = capitalize(toCity);
+            searchEl.value = "";
+        
+            render();
+        
+            setTimeout(() => {
+              scrollToBusResults();
+            }, 300);
+        
+            const feedbackText = fromCity !== "cheyyar"
+              ? `${capitalize(fromCity)}-லிருந்து ${capitalize(toCity)}-க்கு போகும் பஸ் இதோ!`
+              : `நீங்க கேட்ட ${capitalize(toCity)} பஸ் டீடைல்ஸ் இதோ உங்களுக்காக!`;
+        
+            playAudioWithText(
+              "success",
+              feedbackText,
+              () => {
+                setTimeout(() => {
+                  if (!isPlayingAudio && avatarBubble) {
+                    avatarBubble.style.display = "none";
+                  }
+                }, 3000);
+              }
+            );
+          } else {
+            handleFallback();
+          }
+        };
    
          recognition.onerror = (e) => {
            if (e.error === "no-speech") {
