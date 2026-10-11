@@ -522,36 +522,72 @@
       6. VIRTUAL LIVE TRACKING POPUP MODAL
       ========================================================= */
    
-   function generateLiveTimeline(r) {
+   // Search pannina stop (From / To) index-a stops list-la kandupidikkum
+   function findStopIdxForTracker(stops, query) {
+     if (!query) return -1;
+     const cleanQ = query.toLowerCase().replace(/[\.\s-]/g, "").trim();
+     if (!cleanQ) return -1;
+     return stops.findIndex(stop => {
+       const cleanS = stop.toLowerCase().replace(/[\.\s-]/g, "").trim();
+       if (cleanQ === "arani" && cleanS.includes("kootroad")) return false;
+       if (cleanQ === "kalavai" && cleanS.includes("kootroad")) return false;
+       return cleanS === cleanQ || cleanS.includes(cleanQ) || cleanQ.includes(cleanS);
+     });
+   }
+
+   function generateLiveTimeline(r, ctx) {
      const currentMinutes = nowMin();
      let stops = [...getRouteStops(r)];
      const offsetTable = getOffsetTable(r);
-   
-     const totalTripTime = Math.max(...Object.values(offsetTable)) || 60;
+
+     const fullTripTime = Math.max(...Object.values(offsetTable)) || 60;
      const isReturn = Boolean(r.isReturnEstimated);
      if (isReturn) stops = stops.reverse();
-   
+
+     // ---- From -> To mattum kaattanum (e.g. Cheyyar -> Hasanamapet) ----
+     let sliced = false;
+     if (ctx && (ctx.from || ctx.to)) {
+       const fi = findStopIdxForTracker(stops, ctx.from);
+       const ti = findStopIdxForTracker(stops, ctx.to);
+       const start = fi >= 0 ? fi : 0;
+       const end = ti >= 0 ? ti : stops.length - 1;
+       if (end > start && (start !== 0 || end !== stops.length - 1)) {
+         stops = stops.slice(start, end + 1);
+         sliced = true;
+       }
+     }
+
+     const capName = k => k.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+     const offOf = k => {
+       let off = offsetTable[k.toLowerCase().trim()] || 0;
+       if (isReturn) off = fullTripTime - off;
+       return off;
+     };
+
      const busBaseMin = r.min;
-     const busEndMin = busBaseMin + totalTripTime;
-   
-     let currentStopName = ORIGIN(r);
+     const firstOff = offOf(stops[0]);
+     const lastOff = offOf(stops[stops.length - 1]);
+     const startMin = busBaseMin + firstOff;
+     const busEndMin = busBaseMin + lastOff;
+     const segmentTime = Math.max(lastOff - firstOff, 0) || fullTripTime;
+
+     const originName = sliced ? capName(stops[0]) : ORIGIN(r);
+     const finalName = sliced ? capName(stops[stops.length - 1]) : FINAL_TO(r);
+
+     let currentStopName = originName;
      let statusMsg = "";
      let foundCurrent = false;
      let stopsHtml = "";
-   
+
      stops.forEach((stopKey) => {
-       const k = stopKey.toLowerCase().trim();
-       let off = offsetTable[k] || 0;
-       if (isReturn) off = totalTripTime - off;
-   
+       const off = offOf(stopKey);
        const stopArrivalMin = (busBaseMin + off) % 1440;
        const timeStr = minToTimeStr(stopArrivalMin);
-   
+
        let stopClass = "upcoming";
-       const cleanStopName = stopKey.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-   
+       const cleanStopName = capName(stopKey);
        const currentDiff = (currentMinutes - (busBaseMin + off));
-   
+
        if (currentDiff >= 0 && currentMinutes < busEndMin) {
          stopClass = "passed";
          currentStopName = cleanStopName;
@@ -560,7 +596,7 @@
          foundCurrent = true;
          currentStopName = cleanStopName;
        }
-   
+
        stopsHtml += `
          <div class="timeline-stop-item ${stopClass}">
            <span class="stop-dot"></span>
@@ -569,56 +605,60 @@
          </div>
        `;
      });
-   
-     if (currentMinutes < busBaseMin) {
-       statusMsg = `Scheduled: Departs from ${ORIGIN(r)} in ${busBaseMin - currentMinutes} mins`;
+
+     if (currentMinutes < startMin) {
+       statusMsg = `Scheduled: Reaches ${originName} in ${startMin - currentMinutes} mins`;
      } else if (currentMinutes >= busEndMin) {
-       statusMsg = `Trip Completed (Reached ${FINAL_TO(r)})`;
-       currentStopName = FINAL_TO(r);
+       statusMsg = `Trip Completed (Reached ${finalName})`;
+       currentStopName = finalName;
      } else {
        statusMsg = `🟢 Live on Route (Near ${currentStopName})`;
      }
-   
+
      const html = `
        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; color:#a9aeba; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.06);">
          <span>${statusMsg}</span>
-         <strong style="color:#ff8a52;">Trip Duration: ${totalTripTime} mins</strong>
+         <strong style="color:#ff8a52;">Trip Duration: ${segmentTime} mins</strong>
        </div>
        <div class="timeline-stops-list">
          ${stopsHtml}
        </div>
      `;
-   
-     return { html, currentStopName, isCompleted: currentMinutes >= busEndMin, isUpcoming: currentMinutes < busBaseMin };
+
+     return {
+       html, currentStopName, originName, finalName,
+       isCompleted: currentMinutes >= busEndMin,
+       isUpcoming: currentMinutes < startMin
+     };
    }
-   
+
    const trackerModal = $("tracker-modal");
    const closeTrackerBtn = $("close-tracker-modal");
-   
-   function openTrackerModal(r) {
+
+   function openTrackerModal(r, ctx) {
      if (!trackerModal) return;
      const nameEl = $("t-popup-bus-name");
      const summaryEl = $("t-popup-route-summary");
      const contentEl = $("tracker-popup-content");
-   
-     const timelineData = generateLiveTimeline(r);
-   
+
+     const timelineData = generateLiveTimeline(r, ctx);
+
      if (nameEl) nameEl.textContent = BUS(r);
-     
+
      if (summaryEl) {
        if (timelineData.isUpcoming) {
-         summaryEl.innerHTML = `Starting from <strong>${ORIGIN(r)}</strong> ➔ ${FINAL_TO(r)} (${r.time})`;
+         summaryEl.innerHTML = `Starting from <strong>${timelineData.originName}</strong> ➔ ${timelineData.finalName} (${r.time})`;
        } else if (timelineData.isCompleted) {
-         summaryEl.innerHTML = `Reached <strong>${FINAL_TO(r)}</strong> • Service Completed`;
+         summaryEl.innerHTML = `Reached <strong>${timelineData.finalName}</strong> • Service Completed`;
        } else {
-         summaryEl.innerHTML = `📍 Currently near <strong>${timelineData.currentStopName}</strong> ➔ ${FINAL_TO(r)}`;
+         summaryEl.innerHTML = `📍 Currently near <strong>${timelineData.currentStopName}</strong> ➔ ${timelineData.finalName}`;
        }
      }
-   
+
      if (contentEl) contentEl.innerHTML = timelineData.html;
      trackerModal.style.display = "flex";
    }
-   
+
    function closeTrackerModal() {
      if (trackerModal) trackerModal.style.display = "none";
    }
@@ -778,13 +818,9 @@
      });
    
      if (showUpcomingOnly) {
-       const upcomingList = list.filter(r => {
-         const offsetTable = getOffsetTable(r);
-         const totalTripMins = Math.max(...Object.values(offsetTable)) || 60;
-         const busEndMin = r.min + totalTripMins;
-         return currentMinutes <= (busEndMin + 1);
-       });
-       list = upcomingList;
+       // Neenga search pannura stop-ku bus innum varala-na mattum kaattum
+       // (departed / already poyidicha bus kaattaadhu)
+       list = list.filter(r => r.displayMin >= currentMinutes);
      }
    
      list.sort((a, b) => a.displayMin - b.displayMin);
@@ -889,7 +925,7 @@
        
        liveTrackBtn.addEventListener("click", e => {
          e.stopPropagation();
-         openTrackerModal(r);
+         openTrackerModal(r, { from: qFrom, to: qTo });
        });
    
        tdBus.appendChild(liveTrackBtn);
@@ -1400,7 +1436,7 @@ function scrollToBusResults() {
      setTimeout(() => { if (assistantActive && !isPlayingAudio) startSpeechRecognitionSession(); }, delay || 500);
    }
 
-   function handleFallback() {
+   function handleFallback(heard) {
      stopListening();
      missCount++;
      if (missCount >= MAX_MISSES) {
@@ -1409,7 +1445,7 @@ function scrollToBusResults() {
      }
      playAudioWithText(
        "fallback",
-       "ஊரு நேம் சரியா சொல்லுங்க, எனக்கு கேக்கல!",
+       "ஊரு நேம் சரியா சொல்லுங்க, எனக்கு கேக்கல!" + (heard ? `  🎤 "${heard}"` : ""),
        () => listenAgain(400)
      );
    }
@@ -1590,7 +1626,8 @@ function scrollToBusResults() {
       .replace(/[bgdjczwfqx]/g, c => ({ b:"p", g:"k", d:"t", j:"s", c:"k", z:"l", w:"v", f:"p", q:"k", x:"k" }[c]))
       .replace(/h/g, "")
       .replace(/e/g, "i").replace(/o/g, "u")
-      .replace(/(.)\1+/g, "$1");
+      .replace(/(.)\1+/g, "$1")
+      .replace(/([aiu])y(?=[aiu])/g, "$1");
     return s;
   }
   const skeleton = p => p.replace(/[aiu]/g, "").replace(/(.)\1+/g, "$1");
@@ -1615,7 +1652,7 @@ function scrollToBusResults() {
     "hasanamapet": ["hasanamapet", "hasanampet", "hasanampettai", "asanamapettai", "அசனமாபேட்டை", "ஹசனாமாபேட்டை", "ஹசனாம்பேட்டை", "அசனாம்பேட்டை", "ஹஸனமாபேட்டை", "பேட்டை"],
     "vembakkam": ["வெம்பாக்கம்", "வேம்பாக்கம்"],
     "kanchipuram": ["kanchi", "காஞ்சிபுரம்", "காஞ்சி"],
-    "cheyyar": ["cheyyaru", "செய்யாறு", "செய்யார்"],
+    "cheyyar": ["cheyyaru", "seyyar", "seyyaru", "cheyar", "செய்யாறு", "செய்யார்", "செய்யாரு", "செயாறு", "செயார்", "சேயாறு", "சையாறு", "செய்யாற"],
     "arani": ["ஆரணி"],
     "vellore": ["வேலூர்"],
     "vandavasi": ["வந்தவாசி"],
@@ -1633,17 +1670,42 @@ function scrollToBusResults() {
   };
 
   let _voiceIndex = null;
+  const hasTamilChars = t => /[\u0B80-\u0BFF]/.test(t);
+  const cleanPlaceEn = t => String(t || "").split(/\s+via\s+|\(|→|➔|,|\//i)[0].trim().toLowerCase();
+  const cleanPlaceTa = t => String(t || "").split(/\s*வழி|\(|→|➔|,|\//)[0].trim();
+
   function getVoiceIndex() {
     if (_voiceIndex) return _voiceIndex;
     const names = new Set(["cheyyar", "kanchipuram", "arani", "vandavasi", "vellore", "arcot"]);
+    const dataTamil = {};   // english name -> [tamil spellings from timetable]
+
     [ROUTE_VELLORE_ARCOT, ROUTE_VELLORE_SIVAJI, ROUTE_KANCHI_DIRECT, ROUTE_KANCHI_VEMBAKKAM,
      ROUTE_VANDAVASI_DIRECT, ROUTE_ARANI_SV_NAGARAM, ROUTE_KORUKKAI, ROUTE_THAVASI,
      ROUTE_KALAVAI, ROUTE_PARASUR, ROUTE_GINGEE, ROUTE_PUDUCHERRY]
       .forEach(arr => arr.forEach(n => names.add(String(n).toLowerCase().trim())));
     Object.keys(VOICE_ALIASES).forEach(n => names.add(n));
 
+    // Timetable-la irukkura ELLA ooru (Parasur, Bengaluru, Salem, Polur...) + Tamil peyar
+    try {
+      IDS.forEach(k => {
+        ROUTES[k].rows.forEach(r => {
+          [[r.from, r.fromTa], [r.to, r.toTa]].forEach(([en, ta]) => {
+            const e = cleanPlaceEn(en);
+            if (!e || e.length < 3 || hasTamilChars(e)) return;
+            names.add(e);
+            const t = cleanPlaceTa(ta);
+            if (t && hasTamilChars(t)) {
+              dataTamil[e] = dataTamil[e] || [];
+              if (!dataTamil[e].includes(t)) dataTamil[e].push(t);
+            }
+          });
+          if (Array.isArray(r.stops)) r.stops.forEach(n => { const e = cleanPlaceEn(n); if (e.length >= 3) names.add(e); });
+        });
+      });
+    } catch (err) { console.warn("voice index data scan failed:", err); }
+
     _voiceIndex = [...names].map(name => {
-      const forms = [name].concat(VOICE_ALIASES[name] || []).map(f => {
+      const forms = [name].concat(VOICE_ALIASES[name] || [], dataTamil[name] || []).map(f => {
         const p = phon(f);
         return { p, sk: skeleton(p), isMain: f === name };
       }).filter(f => f.p.length >= 2);
@@ -1653,7 +1715,7 @@ function scrollToBusResults() {
   }
 
   // Score one token-window against one stop form (0 = no match)
-  function scoreForm(win, form, strict) {
+  function scoreForm(win, form, strict, relaxed) {
     const w = win.p, sp = form.p;
     if (!w || !sp) return 0;
     if (strict) {   // multi-word stops: whole-phrase comparison only
@@ -1667,39 +1729,44 @@ function scrollToBusResults() {
     // consonant skeleton (handles vowel differences: hasanamapet vs ஹசனாம்பேட்டை)
     if (form.sk.length >= 4) {
       if (win.sk.startsWith(form.sk) && win.sk.length <= form.sk.length + 4) return 0.9 + sim * 0.1;
-      if (form.sk.length >= 6) {
+      if (form.sk.length >= (relaxed ? 5 : 6)) {
         const a = win.sk.slice(0, form.sk.length), b = win.sk.slice(0, form.sk.length + 1);
         if (lev(form.sk, a) <= 1 || lev(form.sk, b) <= 1) return 0.85 + sim * 0.1;
       }
     }
-    const need = sp.length >= 6 ? 0.88 : 0.94;
+    const need = relaxed ? (sp.length >= 6 ? 0.76 : 0.86) : (sp.length >= 6 ? 0.88 : 0.94);
     return sim >= need ? sim : 0;
   }
 
-  function detectStops(raw) {
+  function detectStops(raw, relaxed) {
     const tokens = raw.split(/[\s,.\-?!]+/).filter(Boolean);
     const used = new Array(tokens.length).fill(false);
     const found = [];
     const idx = getVoiceIndex();
 
-    for (let len = 3; len >= 1; len--) {
+    // pass A: multi-word stops (arani koot road) | pass B: single token | pass C: STT split a word in 2 ("பாரா சூர்")
+    const passes = [{ len: 3, multi: true }, { len: 2, multi: true }, { len: 1, multi: false }, { len: 2, multi: false }];
+
+    passes.forEach(pass => {
+      const len = pass.len;
       for (let i = 0; i + len <= tokens.length; i++) {
         if (used.slice(i, i + len).some(Boolean)) continue;
-        const text = tokens.slice(i, i + len).join("");
-        const p = phon(text);
-        if (p.length < 3) continue;
+        const p = phon(tokens.slice(i, i + len).join(""));
+        if (p.length < (relaxed ? 4 : 3)) continue;
         const win = { p, sk: skeleton(p) };
+        const strict = len > 1;
 
         let best = null;
-        idx.forEach(st => st.forms.forEach(f => {
-          // multi-word windows only for multi-word stops (e.g. "arani koot road")
-          if (len > 1 && st.name.split(" ").length !== len) return;
-          if (len === 1 && st.name.indexOf(" ") !== -1) return;
-          const base = scoreForm(win, f, len > 1);
-          if (base <= 0) return;
-          const sc = base + (f.isMain ? 0.001 : 0);
-          if (!best || sc > best.score) best = { name: st.name, score: sc };
-        }));
+        idx.forEach(st => {
+          const words = st.name.split(" ").length;
+          if (pass.multi ? words !== len : words !== 1) return;
+          st.forms.forEach(f => {
+            const base = scoreForm(win, f, strict, relaxed);
+            if (base <= 0) return;
+            const sc = base + (f.isMain ? 0.001 : 0);
+            if (!best || sc > best.score) best = { name: st.name, score: sc };
+          });
+        });
 
         if (best) {
           for (let k = i; k < i + len; k++) used[k] = true;
@@ -1710,8 +1777,8 @@ function scrollToBusResults() {
           });
         }
       }
-    }
-    // same stop twice -> keep best
+    });
+
     const uniq = [];
     found.sort((a, b) => b.score - a.score).forEach(d => { if (!uniq.some(u => u.name === d.name)) uniq.push(d); });
     return uniq.sort((a, b) => a.index - b.index);
@@ -1748,6 +1815,14 @@ function scrollToBusResults() {
       const d = detectStops(t);
       if (i === 0 || d.length > detected.length) { raw = t; detected = d; }
     });
+    // 1 ooru mattum kedaicha -> konjam relaxed-ah thirumba try (ella alternatives-layum)
+    if (detected.length < 2) {
+      alts.forEach(t => {
+        const d = detectStops(t, true);
+        if (d.length > detected.length) { raw = t; detected = d; }
+      });
+    }
+    console.log("Heard:", raw, "=> stops:", detected.map(d => d.name));
 
     const mode = detectRouteMode(raw);
     const capitalize = s => s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
@@ -1774,19 +1849,22 @@ function scrollToBusResults() {
       if (fromCity === toCity) fromCity = "cheyyar";
     } else if (detected.length === 1) {
       const single = detected[0].name;
-      if (single === "cheyyar") { handleFallback(); return; }
-      if (ROUTE_KANCHI_VEMBAKKAM.includes(single) && single !== "kanchipuram" && single !== "sevlimedu") {
-        fromCity = single; toCity = "kanchipuram";
-      } else if (ROUTE_VELLORE_ARCOT.includes(single) || ROUTE_VELLORE_SIVAJI.includes(single)) {
-        fromCity = single; toCity = "vellore";
-      } else if (ROUTE_VANDAVASI_DIRECT.includes(single) && single !== "cheyyar") {
-        fromCity = single; toCity = "vandavasi";
+      if (single === "cheyyar") { handleFallback(raw); return; }
+      if (detected[0].fromMarked) {
+        // "X-லிருந்து" nu sonnaa mattum X-la irundhu (default destination-oda)
+        fromCity = single;
+        if (ROUTE_KANCHI_VEMBAKKAM.includes(single) && single !== "kanchipuram" && single !== "sevlimedu") toCity = "kanchipuram";
+        else if (ROUTE_VELLORE_ARCOT.includes(single) || ROUTE_VELLORE_SIVAJI.includes(single)) toCity = "vellore";
+        else if (ROUTE_VANDAVASI_DIRECT.includes(single)) toCity = "vandavasi";
+        else toCity = "cheyyar";
       } else {
-        fromCity = "cheyyar"; toCity = single;
+        // default: Cheyyar -> X
+        fromCity = "cheyyar";
+        toCity = single;
       }
     }
 
-    if (!(toCity && fromCity !== toCity)) { handleFallback(); return; }
+    if (!(toCity && fromCity !== toCity)) { handleFallback(raw); return; }
 
     applyVoiceQuery(fromCity, toCity, mode, capitalize, raw);
   }
