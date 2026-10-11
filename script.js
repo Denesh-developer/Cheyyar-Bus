@@ -2088,22 +2088,29 @@ function scrollToBusResults() {
     document.body.appendChild(modal);
   
     document.getElementById("btn-update-apk").addEventListener("click", () => {
-      // 1. New APK: Android native background download manager vazhiya download aagum
+      // 1. New APK: Android native background download manager
       if (window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function") {
         window.AndroidApp.downloadAndInstallApk(data.apkUrl);
         modal.remove();
         return;
       }
   
-      // 2. Old APK: WebView download listener illaiyenbathal Chrome Browser-kku Intent trigger seigirom
-      const cleanUrl = data.apkUrl.replace(/^https?:\/\//, "");
-      const intentUrl = `intent://${cleanUrl}#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
-  
-      try {
-        window.location.href = intentUrl;
-      } catch (e) {
-        window.open(data.apkUrl, "_system");
-      }
+      // 2. Old APK: ERR_UNKNOWN_URL_SCHEME varaadha fail-safe download trigger
+      const targetUrl = data.apkUrl;
+
+      // Method A: Hidden download anchor tag trigger
+      const a = document.createElement("a");
+      a.href = targetUrl;
+      a.setAttribute("download", "cheyyar-bus.apk");
+      a.setAttribute("target", "_blank");
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // Method B: WebView fallback
+      setTimeout(() => {
+        window.open(targetUrl, "_system");
+      }, 200);
   
       modal.remove();
     });
