@@ -1638,33 +1638,67 @@ function showUpdateModal(data) {
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(checkForAppUpdate, 1500);
 });
-async function updateLiveVisitCounter() {
+/* =========================================================
+   REAL-TIME VISIT HIT COUNTER (AUTO INCREMENT ON EVERY VISIT)
+   ========================================================= */
+
+/* =========================================================
+   FIRESTORE REAL-TIME ATOMIC VISITOR COUNTER
+   ========================================================= */
+
+// Unga Firebase Project Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCk-YR0KFQzHlFHs36ly4mV9u-S5aiXVwE",
+  authDomain: "cheyyarbus.firebaseapp.com",
+  projectId: "cheyyarbus",
+  storageBucket: "cheyyarbus.firebasestorage.app",
+  messagingSenderId: "593131650414",
+  appId: "1:593131650414:web:61319e188fb60edb94157f"
+};
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
+
+async function updateFirestoreLiveVisits() {
   const visitEl = document.getElementById("visit-count");
   if (!visitEl) return;
 
+  const statsDocRef = db.collection("app_stats").doc("visitors");
+
   try {
-    // V2 Updated Endpoint
-    const response = await fetch("https://api.counterapi.dev/v2/cheyyar_bus_live_app/visits/up", {
-      cache: "no-store"
+    // 1. Session check: Orey user refresh pannikitte irundha repeat spam aagama irukka
+    const hasVisitedThisSession = sessionStorage.getItem("cb_session_counted");
+
+    if (!hasVisitedThisSession) {
+      // Atomic Increment: Multiple devices ore nerathil open panninaalum race-condition illamal +1 aagum
+      await statsDocRef.update({
+        count: firebase.firestore.FieldValue.increment(1)
+      });
+      sessionStorage.setItem("cb_session_counted", "true");
+    }
+
+    // 2. Real-Time Snapshot Listener: Vera yaaru open panninaalum screen-la number udaney live-aa jump aagum
+    statsDocRef.onSnapshot((doc) => {
+      if (doc.exists) {
+        const liveCount = doc.data().count || 0;
+        visitEl.textContent = Number(liveCount).toLocaleString();
+      }
     });
 
-    if (!response.ok) throw new Error("API v2 response error");
-
-    const data = await response.json();
-    
-    // v2 returns count directly or inside data object
-    const count = data?.count ?? data?.data?.count;
-    
-    if (typeof count !== "undefined") {
-      visitEl.textContent = Number(count).toLocaleString();
-    }
   } catch (error) {
-    console.warn("Counter error:", error);
-    if (!visitEl.textContent || visitEl.textContent === "0" || visitEl.textContent === "...") {
-      visitEl.textContent = "1,250+";
-    }
+    console.error("Firestore counter error:", error);
+    // Offline alladhu doc illaatha podhu initial set seiyum fallback
+    statsDocRef.set({ count: 1251 }, { merge: true });
   }
 }
+
+// App start aana udan run aagum
+document.addEventListener("DOMContentLoaded", () => {
+  updateFirestoreLiveVisits();
+});
    
    setInterval(() => {
      const now = nowMin();
