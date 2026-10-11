@@ -1359,6 +1359,10 @@ function scrollToBusResults() {
    }
    
    function stopListening() {
+     if (nativeListening) {
+       nativeListening = false;
+       try { if (window.AndroidApp && window.AndroidApp.stopNativeListening) window.AndroidApp.stopNativeListening(); } catch (e) {}
+     }
      if (silenceTimer) {
        clearTimeout(silenceTimer);
        silenceTimer = null;
@@ -1373,6 +1377,7 @@ function scrollToBusResults() {
      if (avatarWidget) avatarWidget.classList.remove("listening");
    }
    
+   var nativeListening = false;
    var assistantActive = false;   // click panna ON aagum, thirumba click panna thaan OFF
    var missCount = 0;
    var lastToggleAt = 0;
@@ -1434,12 +1439,66 @@ function scrollToBusResults() {
     );
   }
 
+  function handleSpeechAlternatives(list) {
+    const fillers = [/வணக்கம்/g, /உங்களுக்கு/g, /எந்த/g, /ஊருக்கு/g, /பஸ்/g, /பாக்கணும்/g];
+    const alts = (list || [])
+      .map(t => String(t || "").toLowerCase().trim())
+      .map(t => fillers.reduce((acc, re) => acc.replace(re, ""), t).trim())
+      .filter(Boolean);
+    console.log("Transcript alternatives:", alts);
+    handleRecognizedTranscript(alts);
+  }
+
+  /* ---- ANDROID APK: WebView-la webkitSpeechRecognition illa -> native SpeechRecognizer bridge ---- */
+  function hasNativeSpeech() {
+    return Boolean(window.AndroidApp && typeof window.AndroidApp.startNativeListening === "function");
+  }
+
+  function startNativeSession() {
+    stopListening();
+    nativeListening = true;
+
+    window.onNativeSpeechStart = () => {
+      if (!nativeListening) return;
+      if (avatarWidget) avatarWidget.classList.add("listening");
+      if (avatarText) avatarText.textContent = "கேட்கிறது... பேசுங்கள்...";
+    };
+
+    window.onNativeSpeechResult = (list) => {
+      if (!nativeListening || !assistantActive || isPlayingAudio) return;
+      nativeListening = false;
+      if (avatarWidget) avatarWidget.classList.remove("listening");
+      handleSpeechAlternatives(list);
+    };
+
+    window.onNativeSpeechError = (code) => {
+      if (!nativeListening) return;
+      nativeListening = false;
+      if (avatarWidget) avatarWidget.classList.remove("listening");
+      if (!assistantActive) return;
+      console.warn("Native speech error:", code);
+      if (code === "not-allowed") { deactivateAssistant("Mic permission allow பண்ணிட்டு மீண்டும் தட்டுங்க!"); return; }
+      if (code === "service-not-allowed") { deactivateAssistant("Google Speech service இல்ல. Google app update பண்ணுங்க."); return; }
+      missCount++;
+      if (missCount >= MAX_MISSES) deactivateAssistant("நீண்ட நேரம் பேசல. மீண்டும் தட்டுங்கள்.");
+      else listenAgain(300);
+    };
+
+    try {
+      window.AndroidApp.startNativeListening("ta-IN");
+    } catch (err) {
+      nativeListening = false;
+      deactivateAssistant("Mic start ஆகல.");
+    }
+  }
+
   function startSpeechRecognitionSession() {
     if (!assistantActive) return;
+    if (hasNativeSpeech()) { startNativeSession(); return; }
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      deactivateAssistant("இந்த Browser-ல mic support இல்ல. Chrome use பண்ணுங்க.");
+      deactivateAssistant("Voice support இல்ல. App-ஐ latest version-க்கு update பண்ணுங்க / Chrome use பண்ணுங்க.");
       return;
     }
 
@@ -1461,14 +1520,7 @@ function scrollToBusResults() {
       if (isPlayingAudio) return;
       handled = true;
 
-      const fillers = [/வணக்கம்/g, /உங்களுக்கு/g, /எந்த/g, /ஊருக்கு/g, /பஸ்/g, /பாக்கணும்/g];
-      const alts = Array.from(e.results[0])
-        .map(a => a.transcript.toLowerCase().trim())
-        .map(t => fillers.reduce((acc, re) => acc.replace(re, ""), t).trim())
-        .filter(Boolean);
-      console.log("Transcript alternatives:", alts);
-
-      handleRecognizedTranscript(alts);
+      handleSpeechAlternatives(Array.from(e.results[0]).map(a => a.transcript));
     };
 
     recognition.onerror = (e) => {
