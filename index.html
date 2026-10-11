@@ -258,6 +258,23 @@
     <button type="button" class="primary full" id="close-dev-modal-btn">Close</button>
   </div>
 </div>
+<!-- ================= LIVE TRACKER POPUP MODAL ================= -->
+<div class="modal-backdrop" id="tracker-modal" style="display: none;">
+  <div class="tracker-popup-card">
+    <div class="tracker-popup-header">
+      <div class="t-head-info">
+        <span class="live-pulse-badge">🟢 LIVE TRIP</span>
+        <h3 id="t-popup-bus-name">Bus Route</h3>
+        <p id="t-popup-route-summary">From ➔ To</p>
+      </div>
+      <button type="button" class="modal-close-btn" id="close-tracker-modal">✕</button>
+    </div>
+
+    <div class="tracker-popup-body" id="tracker-popup-content">
+      <!-- Dynamic Stops Timeline -->
+    </div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="data/timetable.js"></script>
