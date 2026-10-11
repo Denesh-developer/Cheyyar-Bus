@@ -3,7 +3,7 @@
    - Dynamic Custom Autocomplete Dropdown (A-Z Filtered)
    - Universal Intermediate Stop Filtering (Village vs Highway)
    - Direct Live Moving Badge & Virtual Tracking Modal
-   - Ultra-smooth Performance & Responsive Handlers
+   - Real-time Last Bus Alert Integration
    ========================================================= */
 
    const $ = id => document.getElementById(id);
@@ -284,7 +284,7 @@
    
    function getCalculatedTime(r, searchFrom) {
      if (!searchFrom) return { timeStr: r.time, min: r.min, isOffset: false, offsetMins: 0 };
-     const q = searchFrom.toLowerCase().trim();
+     const q = searchFrom.toLowerCase().replace(/[\.\s-]/g, "").trim();
    
      let offsetTable = OFFSETS_ARCOT;
      const stops = getRouteStops(r);
@@ -301,7 +301,11 @@
      else if (stops === ROUTE_GINGEE) offsetTable = OFFSETS_GINGEE;
      else if (stops === ROUTE_PUDUCHERRY) offsetTable = OFFSETS_PUDUCHERRY;
    
-     const matchedKey = Object.keys(offsetTable).find(k => k.includes(q) || q.includes(k));
+     const matchedKey = Object.keys(offsetTable).find(k => {
+       const cleanK = k.toLowerCase().replace(/[\.\s-]/g, "");
+       return cleanK === q || cleanK.includes(q) || q.includes(cleanK);
+     });
+   
      if (!matchedKey || offsetTable[matchedKey] === 0) {
        return { timeStr: r.time, min: r.min, isOffset: false, offsetMins: 0 };
      }
@@ -806,6 +810,7 @@
        tr.appendChild(td);
        rowsEl.appendChild(tr);
        countEl.textContent = "0 buses";
+       updateLastBusBanner();
        return;
      }
    
@@ -942,6 +947,8 @@
      } else if (activeRow && window.Bus3D && Bus3D.setSign) {
        Bus3D.setSign(current, DEST(activeRow), BUS(activeRow), activeRow.displayTime || activeRow.time);
      }
+   
+     updateLastBusBanner();
    }
    
    function setActive(r) {
@@ -988,6 +995,11 @@
      lastNext = null;
      msgEl.textContent = "";
    
+     const d1 = $("from-dropdown");
+     const d2 = $("to-dropdown");
+     if (d1) d1.style.display = "none";
+     if (d2) d2.style.display = "none";
+   
      const rows = ROUTES[k].rows;
      const now = nowMin();
      let upcoming = rows.find(r => r.min >= now) || rows[0];
@@ -996,6 +1008,7 @@
    
      render();
      updateAllBusSigns();
+     updateLastBusBanner();
    
      if (window.Bus3D && Bus3D.focus) {
        Bus3D.focus(k);
@@ -1060,6 +1073,57 @@
      });
    }
    
+   /* =========================================================
+      LAST BUS ALERT ENGINE (EVENING 7:00 PM TO MIDNIGHT)
+      ========================================================= */
+   
+   function updateLastBusBanner() {
+     const alertEl = $("last-bus-alert");
+     const detailsEl = $("last-bus-details");
+     if (!alertEl || !detailsEl) return;
+   
+     const currentMinutes = nowMin();
+   
+     // Evening 7:00 PM (1140 mins) to 11:59 PM (1439 mins) trigger avtundi
+     const isNightTime = currentMinutes >= (19 * 60) && currentMinutes <= 1439;
+   
+     if (!isNightTime) {
+       alertEl.style.display = "none";
+       return;
+     }
+   
+     const activeRows = (ROUTES[current] && ROUTES[current].rows) ? ROUTES[current].rows : [];
+     if (!activeRows.length) {
+       alertEl.style.display = "none";
+       return;
+     }
+   
+     const lastBus = [...activeRows].sort((a, b) => b.min - a.min)[0];
+     const diff = lastBus.min - currentMinutes;
+   
+     if (diff < -10) {
+       detailsEl.innerHTML = `Tonight's last service (${BUS(lastBus)} to ${DEST(lastBus)}) has <strong>already departed</strong>.`;
+       alertEl.classList.remove("urgent");
+       alertEl.style.display = "flex";
+     } else if (diff <= 45) {
+       alertEl.classList.add("urgent");
+       detailsEl.innerHTML = `Final bus to <strong>${DEST(lastBus)}</strong> (${BUS(lastBus)}) leaves at <strong>${lastBus.time}</strong> (🚨 in ${Math.max(0, diff)} mins)!`;
+       alertEl.style.display = "flex";
+     } else {
+       alertEl.classList.remove("urgent");
+       detailsEl.innerHTML = `Tonight's final service to <strong>${DEST(lastBus)}</strong> is at <strong>${lastBus.time}</strong> (${BUS(lastBus)}).`;
+       alertEl.style.display = "flex";
+     }
+   }
+   
+   const closeAlertBtn = $("close-last-bus");
+   if (closeAlertBtn) {
+     closeAlertBtn.addEventListener("click", () => {
+       const alertEl = $("last-bus-alert");
+       if (alertEl) alertEl.style.display = "none";
+     });
+   }
+   
    function debounce(fn, delay = 200) {
      let timer;
      return function (...args) {
@@ -1101,6 +1165,12 @@
        fromEl.value = "Cheyyar";
        searchEl.value = "";
        toEl.value = chip.dataset.city;
+   
+       const d1 = $("from-dropdown");
+       const d2 = $("to-dropdown");
+       if (d1) d1.style.display = "none";
+       if (d2) d2.style.display = "none";
+   
        render();
      });
    });

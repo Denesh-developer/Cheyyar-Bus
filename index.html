@@ -128,18 +128,20 @@
         <div class="stage-loading" data-i18n="load">Loading 3D bus stand…</div>
       </div>
     </div>
-    <!-- LAST BUS ALERT CONTAINER -->
-<div id="last-bus-alert" class="last-bus-banner" style="display: none;">
-  <div class="alert-content">
-    <span class="alert-icon">🌙</span>
-    <div class="alert-text">
-      <span class="alert-title">Last Bus Warning</span>
-      <span id="last-bus-details" class="alert-desc">Loading tonight's last bus...</span>
-    </div>
-  </div>
-  <button type="button" id="close-last-bus" class="alert-close-btn" aria-label="Dismiss alert">✕</button>
-</div>
   </section>
+
+  <!-- ================= LAST BUS NIGHT WARNING BANNER ================= -->
+  <div id="last-bus-alert" class="last-bus-banner" style="display: none;">
+    <div class="alert-content">
+      <span class="alert-icon">🌙</span>
+      <div class="alert-text">
+        <span class="alert-title">Last Bus Warning</span>
+        <span id="last-bus-details" class="alert-desc">Loading tonight's last bus...</span>
+      </div>
+    </div>
+    <button type="button" id="close-last-bus" class="alert-close-btn" aria-label="Dismiss alert">✕</button>
+  </div>
+  <!-- ================= END LAST BUS BANNER ================= -->
 
   <!-- Modern Transit Search Hub (From & To) -->
   <section class="search-panel">
@@ -269,6 +271,7 @@
     <button type="button" class="primary full" id="close-dev-modal-btn">Close</button>
   </div>
 </div>
+
 <!-- ================= LIVE TRACKER POPUP MODAL ================= -->
 <div class="modal-backdrop" id="tracker-modal" style="display: none;">
   <div class="tracker-popup-card">
