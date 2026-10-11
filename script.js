@@ -2028,7 +2028,7 @@ function isInsideAnyApk() {
   return isNewApk || isWebView;
 }
 
-const CURRENT_APP_VERSION = 1;
+const CURRENT_APP_VERSION = 2;
 
 async function checkForAppUpdate() {
   if (!isInsideAnyApk()) return;
