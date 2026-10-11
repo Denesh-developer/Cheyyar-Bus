@@ -4,8 +4,9 @@
    - Universal Intermediate Stop Filtering & Direct Live Badges
    - Real-time Last Bus Alert Integration
    - 3-Clip Natural Voice AI Assistant (.ogg Engine)
-   - Auto-Scroll to Bus Timetable on Voice Query
-   - Firebase Real-Time Live Visits Counter
+   - Any Stop to Any Stop Universal Parser & Matcher
+   - Auto-Scroll to Timetable on Voice Query
+   - Firebase Real-Time Atomic Visitor Counter
    - Seamless In-App Update Engine
    ========================================================= */
 
@@ -162,7 +163,7 @@
    
    const DATA = window.TIMETABLE;
    if (!DATA || !DATA.routes) {
-     rowsEl.innerHTML = '<tr><td colspan="6" class="empty-cell">Timetable data failed to load</td></tr>';
+     if (rowsEl) rowsEl.innerHTML = '<tr><td colspan="6" class="empty-cell">Timetable data failed to load</td></tr>';
      throw new Error("data/timetable.js did not load");
    }
    
@@ -346,7 +347,11 @@
      { match: ["arcot", "vellore"], id: "vellore_to_cheyyar", name: "Vellore ➔ Cheyyar", tamil: "வேலூர் ➔ செய்யாறு", travelMins: 95, haltMins: 25, from: "Vellore", fromTa: "வேலூர்" }
    ];
    
-   RETURN_PATTERNS.forEach(cfg => {
+   // Approx return routes (Kanchi/Arani/Vandavasi/Vellore -> Cheyyar) OFF.
+   // Thirumba venumna true pannunga.
+   const ENABLE_APPROX_RETURN = false;
+
+   (ENABLE_APPROX_RETURN ? RETURN_PATTERNS : []).forEach(cfg => {
      const existingKey = Object.keys(ROUTES).find(k => cfg.match.some(m => k.toLowerCase().includes(m)));
      if (existingKey && ROUTES[existingKey] && ROUTES[existingKey].rows) {
        const cycleOffset = cfg.travelMins + cfg.haltMins;
@@ -671,7 +676,7 @@
    }
    
    /* =========================================================
-      8. FILTER & RENDER ENGINE (DYNAMIC INTERMEDIATE FIX)
+      8. UNIVERSAL ANY-STOP FILTER & RENDER ENGINE
       ========================================================= */
    
    function render() {
@@ -699,42 +704,61 @@
      }
    
      let list = targetRows.filter(r => {
-       const isSearchingFromCheyyar = qFrom && (qFrom.includes("cheyyar") || qFrom.includes("செய்யாறு"));
-       const isSearchingToCheyyar = qTo && (qTo.includes("cheyyar") || qTo.includes("செய்யாறு"));
-   
-       if (isSearchingFromCheyyar && !isSearchingToCheyyar && r.isReturnEstimated) return false;
-       if (isSearchingToCheyyar && !isSearchingFromCheyyar && !r.isReturnEstimated && r.from.toLowerCase().includes("cheyyar")) return false;
-   
        const stopsList = getRouteStops(r);
-       let stopsMapped = stopsList.map(s => s.toLowerCase());
+       let stopsMapped = stopsList.map(s => s.toLowerCase().trim());
        if (r.isReturnEstimated) stopsMapped = [...stopsMapped].reverse();
    
-       const matchStop = (stopName, query) => {
-         stopName = stopName.toLowerCase().trim();
-         query = query.toLowerCase().trim();
-         if ((query === "arani" || query === "ஆரணி") && stopName.includes("koot road")) return false;
-         if ((query === "kalavai" || query === "கலவை") && stopName.includes("koot road")) return false;
-         return stopName === query || stopName.includes(query);
+       const matchStopIndex = (query) => {
+         if (!query) return -1;
+         const cleanQ = query.toLowerCase().replace(/[\.\s-]/g, "").trim();
+   
+         let idx = stopsMapped.findIndex(stop => {
+           const cleanS = stop.toLowerCase().replace(/[\.\s-]/g, "").trim();
+           if (cleanQ === "arani" && cleanS.includes("kootroad")) return false;
+           if (cleanQ === "kalavai" && cleanS.includes("kootroad")) return false;
+           return cleanS === cleanQ || cleanS.includes(cleanQ) || cleanQ.includes(cleanS);
+         });
+   
+         if (idx === -1) {
+           const fromClean = (r.from || "").toLowerCase().replace(/[\.\s-]/g, "");
+           const fromTaClean = (r.fromTa || "").toLowerCase().replace(/[\.\s-]/g, "");
+           const toClean = (r.to || "").toLowerCase().replace(/[\.\s-]/g, "");
+           const toTaClean = (r.toTa || "").toLowerCase().replace(/[\.\s-]/g, "");
+           if (fromClean.includes(cleanQ) || fromTaClean.includes(cleanQ)) idx = 0;
+           else if (toClean.includes(cleanQ) || toTaClean.includes(cleanQ)) idx = stopsMapped.length;
+         }
+   
+         return idx;
        };
    
        let fromIdx = -1;
-       if (qFrom) {
-         fromIdx = stopsMapped.findIndex(s => matchStop(s, qFrom));
-         const exactFromMatch = r.from.toLowerCase().includes(qFrom) || r.fromTa.toLowerCase().includes(qFrom);
-         if (!exactFromMatch && fromIdx === -1) return false;
-       }
-   
        let toIdx = -1;
-       if (qTo) {
-         toIdx = stopsMapped.findIndex(s => matchStop(s, qTo));
-         const exactToMatch = r.to.toLowerCase().includes(qTo) || r.toTa.toLowerCase().includes(qTo);
-         if (!exactToMatch && toIdx === -1) return false;
+   
+       // 1. From Search Validation
+       if (qFrom) {
+         fromIdx = matchStopIndex(qFrom);
+         if (fromIdx === -1) return false;
        }
    
+       // 2. To Search Validation
+       if (qTo) {
+         toIdx = matchStopIndex(qTo);
+         if (toIdx === -1) return false;
+       }
+   
+       // 3. Direction Validation: From munnaadiyum To pinnaadiyum irukkanum
        if (qFrom && qTo && fromIdx !== -1 && toIdx !== -1) {
          if (fromIdx >= toIdx) return false;
        }
    
+       // 3b. Voice route choice (main route / village route)
+       if (voiceRouteMode) {
+         const isVillage = getRouteStops(r) === ROUTE_KANCHI_VEMBAKKAM || isVembakkamRoute(r);
+         if (voiceRouteMode === "village" && !isVillage) return false;
+         if (voiceRouteMode === "main" && isVillage) return false;
+       }
+
+       // 4. Extra Keyword Filter
        if (qExtra) {
          const rowText = [r.time, r.bus, r.busTa, r.from, r.to, r.fromTa, r.toTa].join(" ").toLowerCase();
          if (!rowText.includes(qExtra)) return false;
@@ -1276,7 +1300,7 @@ function scrollToBusResults() {
 }
 
 /* =========================================================
-   13. 3-CLIP NATURAL VOICE AI ASSISTANT (MIC STREAM FIX)
+   13. 3-CLIP NATURAL VOICE AI ASSISTANT (UNIVERSAL MATCHER)
    ========================================================= */
 
    const avatarWidget = $("ai-avatar-widget");
@@ -1349,177 +1373,404 @@ function scrollToBusResults() {
      if (avatarWidget) avatarWidget.classList.remove("listening");
    }
    
+   var assistantActive = false;   // click panna ON aagum, thirumba click panna thaan OFF
+   var missCount = 0;
+   var lastToggleAt = 0;
+   const MAX_MISSES = 4;
+
+   function deactivateAssistant(msg) {
+     assistantActive = false;
+     missCount = 0;
+     stopListening();
+     if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
+     isPlayingAudio = false;
+     if (avatarWidget) avatarWidget.classList.remove("speaking", "listening", "assistant-on");
+     if (avatarBubble) avatarBubble.style.display = "block";
+     if (avatarText) avatarText.textContent = msg || "நிறுத்தப்பட்டது. மீண்டும் தட்டுங்கள்.";
+     setTimeout(() => { if (!assistantActive && avatarBubble) avatarBubble.style.display = "none"; }, 2500);
+   }
+
+   function listenAgain(delay) {
+     if (!assistantActive) return;
+     setTimeout(() => { if (assistantActive && !isPlayingAudio) startSpeechRecognitionSession(); }, delay || 500);
+   }
+
    function handleFallback() {
      stopListening();
-   
+     missCount++;
+     if (missCount >= MAX_MISSES) {
+       deactivateAssistant("சரியா கேக்கல. மீண்டும் தட்டி சொல்லுங்க.");
+       return;
+     }
      playAudioWithText(
        "fallback",
        "ஊரு நேம் சரியா சொல்லுங்க, எனக்கு கேக்கல!",
-       () => {
-         setTimeout(() => {
-           if (!isPlayingAudio && avatarBubble) {
-             avatarBubble.style.display = "none";
-           }
-         }, 2500);
-       }
+       () => listenAgain(400)
      );
    }
-   
+/* =========================================================
+   FIXED VOICE ENGINE (NO ECHO, CLEAN SPEECH CAPTURE)
+   ========================================================= */
+
    function startVoiceAssistant() {
-     if (isPlayingAudio) return;
-   
-     playAudioWithText(
-       "greeting",
-       "வணக்கம்! இது உங்க செய்யார் பஸ் ஆப். உங்களுக்கு எந்த ஊருக்கு பஸ் பாக்கணும்?",
-       () => {
-         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-         if (!SpeechRecognition) {
-           if (avatarText) avatarText.textContent = "Browser-la mic support illa.";
-           return;
-         }
-   
-         stopListening();
-         let hasCapturedSpeech = false;
-   
-         recognition = new SpeechRecognition();
-         recognition.lang = "ta-IN";
-         recognition.continuous = false;
-         recognition.interimResults = false;
-   
-         recognition.onstart = () => {
-           if (avatarWidget) avatarWidget.classList.add("listening");
-           if (avatarText) avatarText.textContent = "கேட்கிறது... பேசுங்கள் (5s)...";
-   
-           silenceTimer = setTimeout(() => {
-             if (!hasCapturedSpeech && !isPlayingAudio) {
-               handleFallback();
-             }
-           }, 5500);
-         };
-   
-         recognition.onresult = (e) => {
-          if (isPlayingAudio) return;
-        
-          hasCapturedSpeech = true;
-          if (silenceTimer) clearTimeout(silenceTimer);
-        
-          const rawTranscript = e.results[0][0].transcript.toLowerCase().trim();
-          console.log("Speech Recognized:", rawTranscript);
-        
-          // 1. Comprehensive Aliases Map
-          const aliasMap = {
-            "hasanamapet": ["hasanamapet", "hasanampet", "hasanampettai", "அசனமாபேட்டை", "அசனமாபேட்ட", "ஹஸனமாபேட்டை", "ஹசனாமாபேட்டை"],
-            "kanchipuram": ["kanchipuram", "kanchi", "காஞ்சிபுரம்", "காஞ்சி"],
-            "cheyyar": ["cheyyar", "cheyyaru", "செய்யாறு", "செய்யார்"],
-            "arani": ["arani", "ஆரணி"],
-            "vellore": ["vellore", "வேலூர்"],
-            "vandavasi": ["vandavasi", "வந்தவாசி"],
-            "arcot": ["arcot", "ஆற்காடு"],
-            "kalavai": ["kalavai", "கலவை"],
-            "vembakkam": ["vembakkam", "வெம்பாக்கம்"],
-            "chennai": ["chennai", "சென்னை"],
-            "gingee": ["gingee", "senji", "செஞ்சி"],
-            "puducherry": ["puducherry", "pondicherry", "பாண்டி", "புதுச்சேரி"],
-            "dusi": ["dusi", "தூசி", "துாசி"],
-            "mamandur": ["mamandur", "மாமண்டூர்"],
-            "sembedu": ["sembedu", "செம்பேடு"]
-          };
-        
-          const detected = [];
-        
-          // 2. Transcript-il search panni duplicate illamal index edukirom
-          Object.keys(aliasMap).forEach(cityName => {
-            const keys = aliasMap[cityName];
-            let earliestIdx = -1;
-        
-            for (const key of keys) {
-              const idx = rawTranscript.indexOf(key);
-              if (idx !== -1) {
-                if (earliestIdx === -1 || idx < earliestIdx) {
-                  earliestIdx = idx;
-                }
-              }
-            }
-        
-            if (earliestIdx !== -1) {
-              // Orey ooru thirumba duplicate aagama verify seigirom
-              detected.push({ name: cityName, index: earliestIdx });
-            }
+    // touch + emulated mouse events double-fire pannum -> 700ms debounce
+    const now = Date.now();
+    if (now - lastToggleAt < 700) return;
+    lastToggleAt = now;
+
+    // ON-la irundhaa thirumba click = OFF
+    if (assistantActive) { deactivateAssistant(); return; }
+
+    assistantActive = true;
+    missCount = 0;
+    stopListening();
+    if (avatarWidget) avatarWidget.classList.add("assistant-on");
+
+    if (avatarBubble) avatarBubble.style.display = "block";
+    playAudioWithText(
+      "greeting",
+      "வணக்கம்! இது உங்க செய்யார் பஸ் ஆப். உங்களுக்கு எந்த ஊருக்கு பஸ் பாக்கணும்?",
+      () => listenAgain(400)
+    );
+  }
+
+  function startSpeechRecognitionSession() {
+    if (!assistantActive) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      deactivateAssistant("இந்த Browser-ல mic support இல்ல. Chrome use பண்ணுங்க.");
+      return;
+    }
+
+    stopListening();
+    let handled = false;
+
+    recognition = new SpeechRecognition();
+    recognition.lang = "ta-IN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 5;
+
+    recognition.onstart = () => {
+      if (avatarWidget) avatarWidget.classList.add("listening");
+      if (avatarText) avatarText.textContent = "கேட்கிறது... பேசுங்கள்...";
+    };
+
+    recognition.onresult = (e) => {
+      if (isPlayingAudio) return;
+      handled = true;
+
+      const fillers = [/வணக்கம்/g, /உங்களுக்கு/g, /எந்த/g, /ஊருக்கு/g, /பஸ்/g, /பாக்கணும்/g];
+      const alts = Array.from(e.results[0])
+        .map(a => a.transcript.toLowerCase().trim())
+        .map(t => fillers.reduce((acc, re) => acc.replace(re, ""), t).trim())
+        .filter(Boolean);
+      console.log("Transcript alternatives:", alts);
+
+      handleRecognizedTranscript(alts);
+    };
+
+    recognition.onerror = (e) => {
+      console.warn("Speech Recognition Error:", e.error);
+      if (e.error === "aborted") return;
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        deactivateAssistant("Mic permission allow பண்ணுங்க!");
+      }
+      // no-speech / network -> onend-la retry aagum
+    };
+
+    recognition.onend = () => {
+      if (avatarWidget) avatarWidget.classList.remove("listening");
+      if (!assistantActive || handled || isPlayingAudio) return;
+      // edhuvum pesala -> silent-ah thirumba kekkum (click venaam)
+      missCount++;
+      if (missCount >= MAX_MISSES) {
+        deactivateAssistant("நீண்ட நேரம் பேசல. மீண்டும் தட்டுங்கள்.");
+      } else {
+        listenAgain(300);
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch (err) {
+      console.warn("Recognition start failed:", err);
+      listenAgain(800);
+    }
+  }
+
+  /* =========================================================
+     VOICE MATCHER v2 - Tamil/English phonetic fuzzy matching
+     (Hasanamapet / ஹசனாமாபேட்டை / அசனமாபேட் - ellam same ooru)
+     ========================================================= */
+
+  var voiceRouteMode = null;      // null | "main" | "village"
+  var lastVoiceQuery = null;      // { from, to }
+
+  const TA_V = { "அ":"a","ஆ":"a","இ":"i","ஈ":"i","உ":"u","ஊ":"u","எ":"e","ஏ":"e","ஐ":"ai","ஒ":"o","ஓ":"o","ஔ":"au" };
+  const TA_S = { "ா":"a","ி":"i","ீ":"i","ு":"u","ூ":"u","ெ":"e","ே":"e","ை":"ai","ொ":"o","ோ":"o","ௌ":"au" };
+  const TA_C = { "க":"k","ங":"n","ச":"s","ஞ":"n","ட":"t","ண":"n","த":"t","ந":"n","ப":"p","ம":"m","ய":"y","ர":"r",
+                 "ல":"l","வ":"v","ழ":"l","ள":"l","ற":"r","ன":"n","ஜ":"s","ஷ":"s","ஸ":"s","ஹ":"h" };
+
+  function taToLatin(s) {
+    let out = "";
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+      if (TA_C[ch] !== undefined) {
+        out += TA_C[ch];
+        const nx = s[i + 1];
+        if (nx === "்") { i++; }
+        else if (TA_S[nx] !== undefined) { out += TA_S[nx]; i++; }
+        else out += "a";
+      } else if (TA_V[ch] !== undefined) out += TA_V[ch];
+      else if (TA_S[ch] !== undefined) out += TA_S[ch];
+      else out += ch;
+    }
+    return out;
+  }
+
+  // Tamil or English text -> rough sound key (same key for both scripts)
+  function phon(str) {
+    let s = taToLatin(String(str || "").toLowerCase());
+    s = s.replace(/[^a-z]/g, "")
+      .replace(/ch|sh|zh|ph|kh|gh|bh|dh|th/g, m => ({ ch:"s", sh:"s", zh:"l", ph:"p", kh:"k", gh:"k", bh:"p", dh:"t", th:"t" }[m]))
+      .replace(/[bgdjczwfqx]/g, c => ({ b:"p", g:"k", d:"t", j:"s", c:"k", z:"l", w:"v", f:"p", q:"k", x:"k" }[c]))
+      .replace(/h/g, "")
+      .replace(/e/g, "i").replace(/o/g, "u")
+      .replace(/(.)\1+/g, "$1");
+    return s;
+  }
+  const skeleton = p => p.replace(/[aiu]/g, "").replace(/(.)\1+/g, "$1");
+
+  function lev(a, b) {
+    const m = a.length, n = b.length;
+    if (!m) return n;
+    if (!n) return m;
+    let prev = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i = 1; i <= m; i++) {
+      const cur = [i];
+      for (let j = 1; j <= n; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      prev = cur;
+    }
+    return prev[n];
+  }
+
+  // Extra spellings (Tamil/English) that speech-to-text commonly gives
+  const VOICE_ALIASES = {
+    "hasanamapet": ["hasanamapet", "hasanampet", "hasanampettai", "asanamapettai", "அசனமாபேட்டை", "ஹசனாமாபேட்டை", "ஹசனாம்பேட்டை", "அசனாம்பேட்டை", "ஹஸனமாபேட்டை", "பேட்டை"],
+    "vembakkam": ["வெம்பாக்கம்", "வேம்பாக்கம்"],
+    "kanchipuram": ["kanchi", "காஞ்சிபுரம்", "காஞ்சி"],
+    "cheyyar": ["cheyyaru", "செய்யாறு", "செய்யார்"],
+    "arani": ["ஆரணி"],
+    "vellore": ["வேலூர்"],
+    "vandavasi": ["வந்தவாசி"],
+    "arcot": ["ஆற்காடு", "ஆர்காடு"],
+    "kalavai": ["கலவை"],
+    "chennai": ["சென்னை"],
+    "gingee": ["senji", "செஞ்சி"],
+    "puducherry": ["pondicherry", "பாண்டி", "புதுச்சேரி", "பாண்டிச்சேரி"],
+    "dusi": ["தூசி", "துாசி"],
+    "mamandur": ["மாமண்டூர்"],
+    "moranam": ["மோரணம்"],
+    "duli": ["தூளி", "டூளி"],
+    "eachur": ["ஈச்சூர்"],
+    "sembedu": ["செம்பேடு"]
+  };
+
+  let _voiceIndex = null;
+  function getVoiceIndex() {
+    if (_voiceIndex) return _voiceIndex;
+    const names = new Set(["cheyyar", "kanchipuram", "arani", "vandavasi", "vellore", "arcot"]);
+    [ROUTE_VELLORE_ARCOT, ROUTE_VELLORE_SIVAJI, ROUTE_KANCHI_DIRECT, ROUTE_KANCHI_VEMBAKKAM,
+     ROUTE_VANDAVASI_DIRECT, ROUTE_ARANI_SV_NAGARAM, ROUTE_KORUKKAI, ROUTE_THAVASI,
+     ROUTE_KALAVAI, ROUTE_PARASUR, ROUTE_GINGEE, ROUTE_PUDUCHERRY]
+      .forEach(arr => arr.forEach(n => names.add(String(n).toLowerCase().trim())));
+    Object.keys(VOICE_ALIASES).forEach(n => names.add(n));
+
+    _voiceIndex = [...names].map(name => {
+      const forms = [name].concat(VOICE_ALIASES[name] || []).map(f => {
+        const p = phon(f);
+        return { p, sk: skeleton(p), isMain: f === name };
+      }).filter(f => f.p.length >= 2);
+      return { name, forms };
+    });
+    return _voiceIndex;
+  }
+
+  // Score one token-window against one stop form (0 = no match)
+  function scoreForm(win, form, strict) {
+    const w = win.p, sp = form.p;
+    if (!w || !sp) return 0;
+    if (strict) {   // multi-word stops: whole-phrase comparison only
+      const sm = 1 - lev(sp, w) / Math.max(sp.length, w.length);
+      return (win.sk === form.sk || sm >= 0.85) ? 0.5 + sm * 0.5 : 0;
+    }
+    const cuts = [w, w.slice(0, sp.length), w.slice(0, sp.length + 1)];
+    let sim = 0;
+    cuts.forEach(c => { sim = Math.max(sim, 1 - lev(sp, c) / Math.max(sp.length, c.length)); });
+
+    // consonant skeleton (handles vowel differences: hasanamapet vs ஹசனாம்பேட்டை)
+    if (form.sk.length >= 4) {
+      if (win.sk.startsWith(form.sk) && win.sk.length <= form.sk.length + 4) return 0.9 + sim * 0.1;
+      if (form.sk.length >= 6) {
+        const a = win.sk.slice(0, form.sk.length), b = win.sk.slice(0, form.sk.length + 1);
+        if (lev(form.sk, a) <= 1 || lev(form.sk, b) <= 1) return 0.85 + sim * 0.1;
+      }
+    }
+    const need = sp.length >= 6 ? 0.88 : 0.94;
+    return sim >= need ? sim : 0;
+  }
+
+  function detectStops(raw) {
+    const tokens = raw.split(/[\s,.\-?!]+/).filter(Boolean);
+    const used = new Array(tokens.length).fill(false);
+    const found = [];
+    const idx = getVoiceIndex();
+
+    for (let len = 3; len >= 1; len--) {
+      for (let i = 0; i + len <= tokens.length; i++) {
+        if (used.slice(i, i + len).some(Boolean)) continue;
+        const text = tokens.slice(i, i + len).join("");
+        const p = phon(text);
+        if (p.length < 3) continue;
+        const win = { p, sk: skeleton(p) };
+
+        let best = null;
+        idx.forEach(st => st.forms.forEach(f => {
+          // multi-word windows only for multi-word stops (e.g. "arani koot road")
+          if (len > 1 && st.name.split(" ").length !== len) return;
+          if (len === 1 && st.name.indexOf(" ") !== -1) return;
+          const base = scoreForm(win, f, len > 1);
+          if (base <= 0) return;
+          const sc = base + (f.isMain ? 0.001 : 0);
+          if (!best || sc > best.score) best = { name: st.name, score: sc };
+        }));
+
+        if (best) {
+          for (let k = i; k < i + len; k++) used[k] = true;
+          const near = tokens.slice(i, Math.min(tokens.length, i + len + 2)).join(" ");
+          found.push({
+            name: best.name, index: i, score: best.score,
+            fromMarked: /இருந்து|ிருந்து|லிருந்து|irunthu|from/.test(near)
           });
-        
-          // Transcript-il sonna order-padi sort
-          detected.sort((a, b) => a.index - b.index);
-        
-          let fromCity = "";
-          let toCity = "";
-        
-          if (detected.length >= 2) {
-            fromCity = detected[0].name;
-            toCity = detected[1].name;
-        
-            // Rendum orey oor-aa irundhaa (bug prevention)
-            if (fromCity === toCity) {
-              fromCity = "cheyyar";
-            }
-          } else if (detected.length === 1) {
-            fromCity = "cheyyar";
-            toCity = detected[0].name;
-          }
-        
-          const capitalize = s => s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-        
-          if (toCity && fromCity !== toCity) {
-            stopListening();
-            fromEl.value = capitalize(fromCity);
-            toEl.value = capitalize(toCity);
-            searchEl.value = "";
-        
-            render();
-        
-            setTimeout(() => {
-              scrollToBusResults();
-            }, 300);
-        
-            const feedbackText = fromCity !== "cheyyar"
-              ? `${capitalize(fromCity)}-லிருந்து ${capitalize(toCity)}-க்கு போகும் பஸ் இதோ!`
-              : `நீங்க கேட்ட ${capitalize(toCity)} பஸ் டீடைல்ஸ் இதோ உங்களுக்காக!`;
-        
-            playAudioWithText(
-              "success",
-              feedbackText,
-              () => {
-                setTimeout(() => {
-                  if (!isPlayingAudio && avatarBubble) {
-                    avatarBubble.style.display = "none";
-                  }
-                }, 3000);
-              }
-            );
-          } else {
-            handleFallback();
-          }
-        };
-   
-         recognition.onerror = (e) => {
-           if (e.error === "no-speech") {
-             if (!hasCapturedSpeech && !isPlayingAudio) handleFallback();
-             return;
-           }
-           if (!hasCapturedSpeech && !isPlayingAudio) handleFallback();
-         };
-   
-         recognition.onend = () => {
-           if (avatarWidget) avatarWidget.classList.remove("listening");
-         };
-   
-         try {
-           recognition.start();
-         } catch(err) {
-           if (avatarWidget) avatarWidget.classList.remove("listening");
-         }
-       }
-     );
-   }
+        }
+      }
+    }
+    // same stop twice -> keep best
+    const uniq = [];
+    found.sort((a, b) => b.score - a.score).forEach(d => { if (!uniq.some(u => u.name === d.name)) uniq.push(d); });
+    return uniq.sort((a, b) => a.index - b.index);
+  }
+
+  function detectRouteMode(raw) {
+    if (/கிராம|village|வில்லேஜ்|உள்ளூர்|உள்வழி|சுற்று/.test(raw)) return "village";
+    if (/மெயின்|மைன்|main|direct|டைரக்ட்|நேராக|நேரா|நேரடி|ஹைவே|highway/.test(raw)) return "main";
+    return null;
+  }
+
+  function bothKanchiFamilies(s) {
+    return ROUTE_KANCHI_DIRECT.includes(s) && ROUTE_KANCHI_VEMBAKKAM.includes(s);
+  }
+
+  function speakTamil(text) {
+    try {
+      if (!window.speechSynthesis) return;
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "ta-IN";
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  // alternatives = array of transcripts from the recognizer (best first)
+  function handleRecognizedTranscript(alternatives) {
+    const alts = (Array.isArray(alternatives) ? alternatives : [alternatives]).filter(Boolean);
+    if (!alts.length) { handleFallback(); return; }
+
+    // pick the alternative that gives most stops (ties -> first / most confident)
+    let raw = alts[0], detected = [];
+    alts.forEach((t, i) => {
+      const d = detectStops(t);
+      if (i === 0 || d.length > detected.length) { raw = t; detected = d; }
+    });
+
+    const mode = detectRouteMode(raw);
+    const capitalize = s => s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+
+    // "main route" / "village route" mattum sonnaa -> last query-ku apply
+    if (mode && detected.length === 0 && lastVoiceQuery && Date.now() - lastVoiceQuery.at < 120000) {
+      applyVoiceQuery(lastVoiceQuery.from, lastVoiceQuery.to, mode, capitalize, raw);
+      return;
+    }
+
+    let fromCity = "", toCity = "";
+    if (detected.length > 2) {
+      detected = detected.slice().sort((a, b) => b.score - a.score).slice(0, 2).sort((a, b) => a.index - b.index);
+    }
+    if (detected.length >= 2) {
+      const marked = detected.find(d => d.fromMarked);
+      if (marked) {
+        fromCity = marked.name;
+        toCity = (detected.find(d => d !== marked) || {}).name;
+      } else {
+        fromCity = detected[0].name;
+        toCity = detected[1].name;
+      }
+      if (fromCity === toCity) fromCity = "cheyyar";
+    } else if (detected.length === 1) {
+      const single = detected[0].name;
+      if (single === "cheyyar") { handleFallback(); return; }
+      if (ROUTE_KANCHI_VEMBAKKAM.includes(single) && single !== "kanchipuram" && single !== "sevlimedu") {
+        fromCity = single; toCity = "kanchipuram";
+      } else if (ROUTE_VELLORE_ARCOT.includes(single) || ROUTE_VELLORE_SIVAJI.includes(single)) {
+        fromCity = single; toCity = "vellore";
+      } else if (ROUTE_VANDAVASI_DIRECT.includes(single) && single !== "cheyyar") {
+        fromCity = single; toCity = "vandavasi";
+      } else {
+        fromCity = "cheyyar"; toCity = single;
+      }
+    }
+
+    if (!(toCity && fromCity !== toCity)) { handleFallback(); return; }
+
+    applyVoiceQuery(fromCity, toCity, mode, capitalize, raw);
+  }
+
+  function applyVoiceQuery(fromCity, toCity, mode, capitalize, heard) {
+    stopListening();
+    missCount = 0;
+    lastVoiceQuery = { from: fromCity, to: toCity, at: Date.now() };
+    voiceRouteMode = mode || null;
+
+    fromEl.value = capitalize(fromCity);
+    toEl.value = capitalize(toCity);
+    searchEl.value = "";
+    render();
+    setTimeout(scrollToBusResults, 300);
+
+    const modeTxt = mode === "village" ? " (கிராமம் வழி)" : mode === "main" ? " (மெயின் ரூட்)" : "";
+    const spokenMsg = (fromCity !== "cheyyar"
+      ? `${capitalize(fromCity)}-லிருந்து ${capitalize(toCity)}-க்கு செல்லும் பேருந்துகள்${modeTxt} இதோ!`
+      : `நீங்கள் கேட்ட ${capitalize(toCity)} பேருந்து விபரங்கள்${modeTxt} இதோ!`)
+      + (heard ? `  🎤 "${heard}"` : "");
+
+    playAudioWithText("success", spokenMsg, () => {
+      if (avatarText) avatarText.textContent = "அடுத்த ஊர் சொல்லுங்க... (நிறுத்த தட்டுங்கள்)";
+      listenAgain(500);
+    });
+  }
+
+  // manual typing / chips / reset => voice route filter off
+  if (fromEl) fromEl.addEventListener("input", () => { voiceRouteMode = null; });
+  if (toEl) toEl.addEventListener("input", () => { voiceRouteMode = null; });
+  document.addEventListener("click", e => {
+    if (e.target.closest && e.target.closest(".chip-btn, #swap-btn, #clear-from-btn, #clear-to-btn, #clear-all-filters, .tab")) {
+      voiceRouteMode = null;
+    }
+  }, true);
 
    function makeWidgetDraggable(el) {
      if (!el) return;
@@ -1594,9 +1845,10 @@ function scrollToBusResults() {
    
    makeWidgetDraggable(avatarWidget);
    
-   document.addEventListener("click", () => {
+   document.addEventListener("click", (ev) => {
      if (!hasAutoTriggered && document.body.classList.contains("app-ready")) {
        hasAutoTriggered = true;
+       if (assistantActive || (ev.target.closest && ev.target.closest("#ai-avatar-widget"))) return;
        startVoiceAssistant();
      }
    }, { once: true });
@@ -1703,7 +1955,6 @@ function showUpdateModal(data) {
   });
 }
 
-// Check for update after 1.5 seconds
 setTimeout(checkForAppUpdate, 1500);
 
 /* =========================================================
@@ -1759,7 +2010,6 @@ async function updateFirestoreLiveVisits() {
   }
 }
 
-// Initialize Firestore Counter
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", updateFirestoreLiveVisits);
 } else {
