@@ -2081,7 +2081,7 @@ function scrollToBusResults() {
         </p>
         
         <!-- Direct Native HTML Anchor (Browser Auto-Triggers) -->
-        <a href="${data.apkUrl}" id="btn-update-apk" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 44px; background: linear-gradient(135deg, #ff5c35, #ff7a45); color: #fff; font-weight: 700; border-radius: 12px; font-size: 15px; text-decoration: none; box-shadow: 0 6px 18px rgba(255, 92, 53, 0.4);">
+        <a href="${data.apkUrl}" id="btn-update-apk" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 44px; background: linear-gradient(135deg, #ff5c35, #ff7a45); color: #fff; font-weight: 700; border-radius: 12px; font-size: 15px; text-decoration: none; box-shadow: 0 6px 18px rgba(255, 92, 53, 0.4);">
           Update Now
         </a>
       </div>
@@ -2089,14 +2089,27 @@ function scrollToBusResults() {
   
     document.body.appendChild(modal);
   
-    // New APK irundhaa mattum background native download edukkum
-    document.getElementById("btn-update-apk").addEventListener("click", (e) => {
-      if (window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function") {
-        e.preventDefault();
-        window.AndroidApp.downloadAndInstallApk(data.apkUrl);
-        modal.remove();
+    // FIX: target="_blank" WebView-la velai seiyaadhu. So click-ah naamae handle panrom.
+    const btn = document.getElementById("btn-update-apk");
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const url = data.apkUrl;
+      if (!url) { alert("Update link kidaikkala. Konjam neram kalichu try pannunga."); return; }
+
+      // New APK: native download + install
+      try {
+        if (window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function") {
+          window.AndroidApp.downloadAndInstallApk(url);
+          btn.textContent = "Downloading...";
+          setTimeout(() => modal.remove(), 800);
+          return;
+        }
+      } catch (err) {
+        console.error("Native update call failed:", err);
       }
-      // Old APK-kkupreventDefault() pannaadheergal, a tag-e direct-aa velai seiyattum!
+
+      // Old APK: same window-la navigate (WebView DownloadListener irundha download aagum)
+      window.location.href = url;
     });
   }
   
