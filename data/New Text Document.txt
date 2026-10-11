@@ -1,1514 +1,1760 @@
 /* =========================================================
-   CHEYYAR HUB - TRANSIT THEME (BUS TIMINGS)
-   Authentic Cheyyar Hub UI: Obsidian black, Ember glow,
-   Fluid mobile-adaptive layout (zero overflow on any screen size).
+   CHEYYAR HUB - BUS TIMINGS ENGINE (FULL PRODUCTION READY)
+   - Dynamic Custom Autocomplete Dropdown (A-Z Filtered)
+   - Universal Intermediate Stop Filtering & Direct Live Badges
+   - Real-time Last Bus Alert Integration
+   - 3-Clip Natural Voice AI Assistant (.ogg Engine)
    ========================================================= */
 
-   @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap");
+   const $ = id => document.getElementById(id);
+   const tabsEl = $("tabs"),
+         rowsEl = $("rows"),
+         searchEl = $("search"),
+         fromEl = $("from-search"),
+         toEl = $("to-search"),
+         swapBtn = $("swap-btn"),
+         countEl = $("count"),
+         msgEl = $("next-msg"),
+         stageEl = $("stage"),
+         upcomingToggle = $("upcoming-toggle"),
+         langBtn = $("lang-btn"),
+         langLabel = $("lang-label");
+   
+   let lang = "en";
+   let activeRow = null, nextRow = null, lastNext = null;
+   const signRows = {};
+   
+   document.documentElement.dataset.theme = "dark";
+   
+   /* =========================================================
+      1. ROUTE SEQUENCES & OFFSETS (MINUTES)
+      ========================================================= */
+   
+   const ROUTE_VELLORE_ARCOT = [
+     "cheyyar", "arani koot road", "duli", "pappanthangal", "sirugattur",
+     "moranam", "randam", "mecheri", "kalavai koot road", "chinnakukundi",
+     "puduppadi", "poongodu", "mupathykatti", "arcot", "melvisharam",
+     "arapakkam", "perumugai", "sathuvacheri", "kaadhidhapettai", "thottapalayam", "vellore"
+   ];
+   
+   const OFFSETS_ARCOT = {
+     "cheyyar": 0, "arani koot road": 7, "duli": 13, "pappanthangal": 18,
+     "sirugattur": 24, "moranam": 28, "randam": 33, "mecheri": 37,
+     "kalavai koot road": 42, "chinnakukundi": 45, "puduppadi": 48,
+     "poongodu": 51, "mupathykatti": 54, "arcot": 58, "melvisharam": 66,
+     "arapakkam": 72, "perumugai": 78, "sathuvacheri": 84,
+     "kaadhidhapettai": 88, "thottapalayam": 92, "vellore": 96
+   };
+   
+   const ROUTE_VELLORE_SIVAJI = [
+     "cheyyar", "arani koot road", "duli", "pappanthangal", "sirugattur",
+     "moranam", "randam", "mecheri", "kalavai koot road", "k velur",
+     "sembedu", "ozhalai", "athithangal", "muppaduvetti", "mupathykatti",
+     "arcot", "melvisharam", "arapakkam", "perumugai", "sathuvacheri",
+     "kaadhidhapettai", "thottapalayam", "vellore"
+   ];
+   
+   const OFFSETS_SIVAJI = {
+     "cheyyar": 0, "arani koot road": 7, "duli": 13, "pappanthangal": 18,
+     "sirugattur": 24, "moranam": 28, "randam": 33, "mecheri": 37,
+     "kalavai koot road": 42, "k velur": 46, "sembedu": 50,
+     "ozhalai": 55, "athithangal": 60, "muppaduvetti": 64,
+     "mupathykatti": 67, "arcot": 72, "melvisharam": 80,
+     "arapakkam": 86, "perumugai": 92, "sathuvacheri": 98,
+     "kaadhidhapettai": 102, "thottapalayam": 106, "vellore": 110
+   };
+   
+   const ROUTE_KANCHI_DIRECT = [
+     "cheyyar", "puliyarambakkam", "valarpuram", "kiliyathur", "palu",
+     "palli", "ermalnangal", "santhimedu", "mamandur", "dusi", "sevlimedu", "kanchipuram"
+   ];
+   
+   const OFFSETS_KANCHI_DIRECT = {
+     "cheyyar": 0, "puliyarambakkam": 8, "valarpuram": 14, "kiliyathur": 18,
+     "palu": 22, "palli": 25, "ermalnangal": 29, "santhimedu": 32,
+     "mamandur": 35, "dusi": 40, "sevlimedu": 47, "kanchipuram": 52
+   };
+   
+   const ROUTE_KANCHI_VEMBAKKAM = [
+     "cheyyar", "arani koot road", "duli", "pappanthangal", "sirugattur",
+     "ramakrishnapuram", "hasanamapet", "perungattur", "alanthagal",
+     "vembakkam", "pillanthangal", "kolivakkam", "iyyankkulam",
+     "abdullapuram", "sevlimedu", "kanchipuram"
+   ];
+   
+   const OFFSETS_KANCHI_VEMBAKKAM = {
+     "cheyyar": 0, "arani koot road": 5, "duli": 9, "pappanthangal": 13,
+     "sirugattur": 17, "ramakrishnapuram": 20, "hasanamapet": 24,
+     "perungattur": 27, "alanthagal": 31, "vembakkam": 34,
+     "pillanthangal": 38, "kolivakkam": 41, "iyyankkulam": 45,
+     "abdullapuram": 48, "sevlimedu": 53, "kanchipuram": 57
+   };
+   
+   const ROUTE_VANDAVASI_DIRECT = [
+     "cheyyar", "anakavur", "erumaivetti", "kulamanthai", "eachur", "vandavasi"
+   ];
+   
+   const OFFSETS_VANDAVASI = {
+     "cheyyar": 0, "anakavur": 8, "erumaivetti": 15, "kulamanthai": 22, "eachur": 28, "vandavasi": 38
+   };
+   
+   const ROUTE_ARANI_SV_NAGARAM = [
+     "cheyyar", "arani koot road", "vadathandalam", "arugavoor", "perupallam",
+     "thandarai", "vadugapattu", "thattachari", "mambakkam", "nethapakkam",
+     "s.v nagaram", "arani"
+   ];
+   
+   const OFFSETS_ARANI_SV_NAGARAM = {
+     "cheyyar": 0, "arani koot road": 7, "vadathandalam": 12, "arugavoor": 16,
+     "perupallam": 20, "thandarai": 24, "vadugapattu": 28, "thattachari": 32,
+     "mambakkam": 37, "nethapakkam": 41, "s.v nagaram": 45, "arani": 50
+   };
+   
+   const ROUTE_KORUKKAI = ["cheyyar", "vellai", "kilathur", "eraiyur", "korukkai"];
+   const OFFSETS_KORUKKAI = { "cheyyar": 0, "vellai": 7, "kilathur": 13, "eraiyur": 19, "korukkai": 25 };
+   
+   const ROUTE_THAVASI = ["cheyyar", "kilmattai", "thavasi"];
+   const OFFSETS_THAVASI = { "cheyyar": 0, "kilmattai": 10, "thavasi": 20 };
+   
+   const ROUTE_KALAVAI = [
+     "cheyyar", "arani koot road", "duli", "pappanthangal", "sirugattur",
+     "moranam", "randam", "mecheri", "kalavai koot road", "kaniyanthangal",
+     "allalacheri", "kalavai"
+   ];
+   const OFFSETS_KALAVAI = {
+     "cheyyar": 0, "arani koot road": 7, "duli": 13, "pappanthangal": 18,
+     "sirugattur": 24, "moranam": 28, "randam": 33, "mecheri": 37,
+     "kalavai koot road": 42, "kaniyanthangal": 46, "allalacheri": 51, "kalavai": 56
+   };
+   
+   const ROUTE_PARASUR = ["cheyyar", "vellai", "mottur", "kilathur", "parasur"];
+   const OFFSETS_PARASUR = { "cheyyar": 0, "vellai": 7, "mottur": 11, "kilathur": 15, "parasur": 22 };
+   
+   const ROUTE_GINGEE = [
+     "cheyyar", "anakavur", "erumaivetti", "kulamanthai", "eachur", "vandavasi",
+     "navalpakkam", "thellar", "dadapuram", "naduvanandal", "nattarmangalam",
+     "senjikottai", "gingee"
+   ];
+   const OFFSETS_GINGEE = {
+     "cheyyar": 0, "anakavur": 8, "erumaivetti": 15, "kulamanthai": 22, "eachur": 28,
+     "vandavasi": 38, "navalpakkam": 45, "thellar": 53, "dadapuram": 62,
+     "naduvanandal": 72, "nattarmangalam": 80, "senjikottai": 88, "gingee": 95
+   };
+   
+   const ROUTE_PUDUCHERRY = [
+     "cheyyar", "anakavur", "erumaivetti", "kulamanthai", "eachur", "vandavasi",
+     "navalpakkam", "thellar", "salavadi", "tindivanam", "aadthur", "omandur",
+     "kiliyanur", "andiyarpalayam", "puducherry"
+   ];
+   const OFFSETS_PUDUCHERRY = {
+     "cheyyar": 0, "anakavur": 8, "erumaivetti": 15, "kulamanthai": 22, "eachur": 28,
+     "vandavasi": 38, "navalpakkam": 45, "thellar": 53, "salavadi": 64,
+     "tindivanam": 78, "aadthur": 88, "omandur": 98, "kiliyanur": 108,
+     "andiyarpalayam": 118, "puducherry": 130
+   };
+   
+   /* =========================================================
+      2. DATA & ROUTE INITIALIZATION
+      ========================================================= */
+   
+   const DATA = window.TIMETABLE;
+   if (!DATA || !DATA.routes) {
+     rowsEl.innerHTML = '<tr><td colspan="6" class="empty-cell">Timetable data failed to load</td></tr>';
+     throw new Error("data/timetable.js did not load");
+   }
+   
+   const toMin = t => {
+     if (!t) return 0;
+     const m = /(\d+)[:.](\d+)\s*(AM|PM)?/i.exec(t);
+     if (!m) return 0;
+     let h = parseInt(m[1], 10);
+     let min = parseInt(m[2], 10);
+     const isPM = m[3] ? m[3].toUpperCase() === "PM" : false;
+     const isAM = m[3] ? m[3].toUpperCase() === "AM" : false;
+   
+     if (isPM && h < 12) h += 12;
+     if (isAM && h === 12) h = 0;
+     return h * 60 + min;
+   };
+   
+   function minToTimeStr(totalMinutes) {
+     let mins = ((totalMinutes % 1440) + 1440) % 1440;
+     let h = Math.floor(mins / 60);
+     let m = mins % 60;
+     const ampm = h >= 12 ? "PM" : "AM";
+     h = h % 12;
+     if (h === 0) h = 12;
+     const mm = m < 10 ? "0" + m : m;
+     return `${h}:${mm} ${ampm}`;
+   }
+   
+   function getFromTo(r) {
+     let from = (r.from || "Cheyyar").trim();
+     let to = (r.to || r.dest || "").trim();
+     let fromTa = (r.fromTa || "செய்யாறு").trim();
+     let toTa = (r.toTa || r.destTa || "").trim();
+   
+     if (to.includes("→")) {
+       const parts = to.split("→").map(s => s.trim());
+       from = parts[0];
+       to = parts[1];
+     }
+     if (toTa.includes("→")) {
+       const partsTa = toTa.split("→").map(s => s.trim());
+       fromTa = partsTa[0];
+       toTa = partsTa[1];
+     }
+     return { from, to, fromTa, toTa };
+   }
+   
+   function isSivajiBus(r) {
+     const name = ((r.bus || "") + " " + (r.busTa || "")).toLowerCase();
+     const dest = ((r.to || "") + " " + (r.dest || "")).toLowerCase();
+     return name.includes("sivaji") || name.includes("சிவாஜி") || dest.includes("வழி கலவை");
+   }
+   
+   function isVembakkamRoute(r) {
+     const allText = [
+       r.routeKey || "",
+       r.to || "",
+       r.toTa || "",
+       r.bus || "",
+       r.busTa || "",
+       r.via || "",
+       r.viaTa || ""
+     ].join(" ").toLowerCase();
+   
+     return allText.includes("vembakkam") || 
+            allText.includes("வெம்பாக்கம்") || 
+            allText.includes("perungattur") || 
+            allText.includes("பெருங்கட்டூர்") ||
+            allText.includes("hasanamapet") ||
+            allText.includes("அசனமாபேட்டை") ||
+            allText.includes("balasubramaniyar") ||
+            allText.includes("பாலசுப்பிரமணியர்");
+   }
+   
+   function getRouteStops(r) {
+     if (r.stops && Array.isArray(r.stops)) return r.stops;
+     if (isSivajiBus(r)) return ROUTE_VELLORE_SIVAJI;
+     if (isVembakkamRoute(r)) return ROUTE_KANCHI_VEMBAKKAM;
+   
+     const rKey = (r.routeKey || "").toLowerCase();
+     const toCity = (r.to || "").toLowerCase();
+     const toCityTa = (r.toTa || "").toLowerCase();
+   
+     if (rKey.includes("puducherry") || toCity.includes("puducherry") || toCityTa.includes("புதுச்சேரி") || toCity.includes("pondicherry") || toCityTa.includes("பாண்டிச்சேரி")) {
+       return ROUTE_PUDUCHERRY;
+     }
+     if (rKey.includes("gingee") || rKey.includes("senji") || toCity.includes("gingee") || toCityTa.includes("செஞ்சி")) {
+       return ROUTE_GINGEE;
+     }
+     if (rKey.includes("parasur") || toCity.includes("parasur") || toCityTa.includes("பாராசூர்")) {
+       return ROUTE_PARASUR;
+     }
+     if (rKey.includes("korkai") || rKey.includes("korukkai") || toCity.includes("korukkai") || toCityTa.includes("கொரக்கை") || toCityTa.includes("கொர்க்கை")) {
+       return ROUTE_KORUKKAI;
+     }
+     if (rKey.includes("kalavai") || toCity.includes("kalavai") || toCityTa.includes("கலவை")) {
+       return ROUTE_KALAVAI;
+     }
+     if (rKey.includes("thavasi") || toCity.includes("thavasi") || toCityTa.includes("தவசி")) {
+       return ROUTE_THAVASI;
+     }
+     if (rKey.includes("arani") || toCity.includes("arani") || toCityTa.includes("ஆரணி") ||
+         toCity.includes("salem") || toCityTa.includes("சேலம்") ||
+         toCity.includes("tiruvannamalai") || toCityTa.includes("திருவண்ணாமலை") ||
+         toCity.includes("polur") || toCityTa.includes("போளூர்")) {
+       return ROUTE_ARANI_SV_NAGARAM;
+     }
+     if (rKey.includes("vandavasi") || toCity.includes("vandavasi") || toCityTa.includes("வந்தவாசி")) {
+       return ROUTE_VANDAVASI_DIRECT;
+     }
+     if (rKey.includes("kanchipuram") || toCity.includes("kanchipuram") || toCityTa.includes("காஞ்சிபுரம்") || toCity.includes("chennai") || toCityTa.includes("சென்னை")) {
+       return ROUTE_KANCHI_DIRECT;
+     }
+     if (rKey.includes("arcot") || toCity.includes("vellore") || toCityTa.includes("வேலூர்") || toCity.includes("arcot") || toCityTa.includes("ஆற்காடு")) {
+       return ROUTE_VELLORE_ARCOT;
+     }
+   
+     return [r.from, r.to].filter(Boolean);
+   }
+   
+   function getOffsetTable(r) {
+     const stops = getRouteStops(r);
+     if (stops === ROUTE_VELLORE_SIVAJI) return OFFSETS_SIVAJI;
+     if (stops === ROUTE_KANCHI_VEMBAKKAM) return OFFSETS_KANCHI_VEMBAKKAM;
+     if (stops === ROUTE_KANCHI_DIRECT) return OFFSETS_KANCHI_DIRECT;
+     if (stops === ROUTE_VANDAVASI_DIRECT) return OFFSETS_VANDAVASI;
+     if (stops === ROUTE_ARANI_SV_NAGARAM) return OFFSETS_ARANI_SV_NAGARAM;
+     if (stops === ROUTE_KORUKKAI) return OFFSETS_KORUKKAI;
+     if (stops === ROUTE_THAVASI) return OFFSETS_THAVASI;
+     if (stops === ROUTE_KALAVAI) return OFFSETS_KALAVAI;
+     if (stops === ROUTE_PARASUR) return OFFSETS_PARASUR;
+     if (stops === ROUTE_GINGEE) return OFFSETS_GINGEE;
+     if (stops === ROUTE_PUDUCHERRY) return OFFSETS_PUDUCHERRY;
+     return OFFSETS_ARCOT;
+   }
+   
+   function getCalculatedTime(r, searchFrom) {
+     if (!searchFrom) return { timeStr: r.time, min: r.min, isOffset: false, offsetMins: 0 };
+     const q = searchFrom.toLowerCase().replace(/[\.\s-]/g, "").trim();
+     const offsetTable = getOffsetTable(r);
+   
+     const matchedKey = Object.keys(offsetTable).find(k => {
+       const cleanK = k.toLowerCase().replace(/[\.\s-]/g, "");
+       return cleanK === q || cleanK.includes(q) || q.includes(cleanK);
+     });
+   
+     if (!matchedKey || offsetTable[matchedKey] === 0) {
+       return { timeStr: r.time, min: r.min, isOffset: false, offsetMins: 0 };
+     }
+   
+     const offset = Number(offsetTable[matchedKey]) || 0;
+     const newMin = r.min + offset;
+     return { timeStr: minToTimeStr(newMin), min: newMin, isOffset: true, offsetMins: offset };
+   }
+   
+   const ROUTES = {};
+   DATA.routes.forEach(r => {
+     ROUTES[r.id] = Object.assign({}, r, {
+       rows: r.entries.map(e => {
+         const loc = getFromTo(e);
+         return Object.assign({}, e, {
+           min: toMin(e.time),
+           from: loc.from,
+           to: loc.to,
+           fromTa: loc.fromTa,
+           toTa: loc.toTa,
+           routeKey: r.id
+         });
+       }).sort((a, b) => a.min - b.min)
+     });
+   });
+   
+   /* =========================================================
+      3. UNIVERSAL RETURN ROUTE ENGINE
+      ========================================================= */
+   
+   const RETURN_PATTERNS = [
+     { match: ["kanchi", "kanchipuram"], id: "kanchi_to_cheyyar", name: "Kanchi ➔ Cheyyar", tamil: "காஞ்சி ➔ செய்யாறு", travelMins: 55, haltMins: 20, from: "Kanchipuram", fromTa: "காஞ்சிபுரம்" },
+     { match: ["arani"], id: "arani_to_cheyyar", name: "Arani ➔ Cheyyar", tamil: "ஆரணி ➔ செய்யாறு", travelMins: 50, haltMins: 15, from: "Arani", fromTa: "ஆரணி" },
+     { match: ["vandavasi"], id: "vandavasi_to_cheyyar", name: "Vandavasi ➔ Cheyyar", tamil: "வந்தவாசி ➔ செய்யாறு", travelMins: 40, haltMins: 15, from: "Vandavasi", fromTa: "வந்தவாசி" },
+     { match: ["arcot", "vellore"], id: "vellore_to_cheyyar", name: "Vellore ➔ Cheyyar", tamil: "வேலூர் ➔ செய்யாறு", travelMins: 95, haltMins: 25, from: "Vellore", fromTa: "வேலூர்" }
+   ];
+   
+   RETURN_PATTERNS.forEach(cfg => {
+     const existingKey = Object.keys(ROUTES).find(k => cfg.match.some(m => k.toLowerCase().includes(m)));
+     if (existingKey && ROUTES[existingKey] && ROUTES[existingKey].rows) {
+       const cycleOffset = cfg.travelMins + cfg.haltMins;
+       const returnRows = ROUTES[existingKey].rows.map(r => {
+         const returnMin = (r.min + cycleOffset) % 1440;
+         const isViaChennai = (r.to || "").toLowerCase().includes("chennai") || (r.toTa || "").includes("சென்னை");
+         const destName = isViaChennai ? "Cheyyar (from Chennai)" : "Cheyyar";
+         const destNameTa = isViaChennai ? "செய்யாறு (சென்னை வழி)" : "செய்யாறு";
+   
+         return Object.assign({}, r, {
+           min: returnMin,
+           time: minToTimeStr(returnMin),
+           from: cfg.from,
+           fromTa: cfg.fromTa,
+           to: destName,
+           toTa: destNameTa,
+           isReturnEstimated: true,
+           routeKey: cfg.id
+         });
+       }).sort((a, b) => a.min - b.min);
+   
+       ROUTES[cfg.id] = {
+         id: cfg.id,
+         name: cfg.name,
+         tamil: cfg.tamil,
+         rows: returnRows
+       };
+     }
+   });
+   
+   const IDS = Object.keys(ROUTES);
+   let current = IDS[0];
+   
+   $("st-n").textContent = IDS.reduce((n, k) => n + ROUTES[k].rows.length, 0);
+   $("st-r").textContent = IDS.length;
+   
+   /* =========================================================
+      4. SMART AUTOCOMPLETE DROPDOWN (FAIL-SAFE & A-Z ONLY)
+      ========================================================= */
+   
+   function populateLocationDatalists() {
+     const allStops = new Set([
+       "Cheyyar", "Kanchipuram", "Arani", "Vandavasi", "Vellore", "Arcot",
+       ...ROUTE_VELLORE_ARCOT,
+       ...ROUTE_VELLORE_SIVAJI,
+       ...ROUTE_KANCHI_DIRECT,
+       ...ROUTE_KANCHI_VEMBAKKAM,
+       ...ROUTE_VANDAVASI_DIRECT,
+       ...ROUTE_ARANI_SV_NAGARAM,
+       ...ROUTE_KORUKKAI,
+       ...ROUTE_THAVASI,
+       ...ROUTE_KALAVAI,
+       ...ROUTE_PARASUR,
+       ...ROUTE_GINGEE,
+       ...ROUTE_PUDUCHERRY
+     ]);
+   
+     IDS.forEach(k => {
+       ROUTES[k].rows.forEach(r => {
+         if (r.from) allStops.add(r.from.trim());
+         if (r.to) allStops.add(r.to.split("via")[0].split("→")[0].trim());
+       });
+     });
+   
+     const englishStops = Array.from(allStops)
+       .filter(name => typeof name === "string" && !/[\u0B80-\u0BFF]/.test(name) && name.trim().length > 1)
+       .map(name => name.trim().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" "));
+   
+     const sortedStops = Array.from(new Set(englishStops)).sort((a, b) => a.localeCompare(b));
+   
+     function attachSmartDropdown(inputEl, dropdownId) {
+       if (!inputEl) return;
+       const parent = inputEl.parentElement;
+       parent.classList.add("autocomplete-box-wrapper");
+   
+       let dropdownEl = document.getElementById(dropdownId);
+       if (!dropdownEl) {
+         dropdownEl = document.createElement("div");
+         dropdownEl.id = dropdownId;
+         dropdownEl.className = "custom-autocomplete-dropdown";
+         parent.appendChild(dropdownEl);
+       }
+   
+       inputEl.addEventListener("input", () => {
+         const val = inputEl.value.trim().toLowerCase();
+         if (!val) {
+           dropdownEl.style.display = "none";
+           dropdownEl.innerHTML = "";
+           return;
+         }
+   
+         const matches = sortedStops.filter(s => s.toLowerCase().startsWith(val));
+   
+         if (matches.length > 0) {
+           dropdownEl.innerHTML = matches.map(city => `
+             <div class="autocomplete-item" data-val="${city}">
+               <span>📍</span> ${city}
+             </div>
+           `).join("");
+           dropdownEl.style.display = "block";
+         } else {
+           dropdownEl.style.display = "none";
+         }
+       });
+   
+       dropdownEl.addEventListener("mousedown", e => {
+         const item = e.target.closest(".autocomplete-item");
+         if (item) {
+           inputEl.value = item.dataset.val;
+           dropdownEl.style.display = "none";
+           render();
+         }
+       });
+   
+       document.addEventListener("click", e => {
+         if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+           dropdownEl.style.display = "none";
+         }
+       });
+     }
+   
+     attachSmartDropdown(fromEl, "from-dropdown");
+     attachSmartDropdown(toEl, "to-dropdown");
+   }
+   
+   /* =========================================================
+      5. TRANSLATION & HELPERS
+      ========================================================= */
+   
+   function T(text, l) {
+     if ((l || lang) !== "ta") return text;
+     let out = (text || "").replace(/via ([A-Za-z]+)/g, "$1 வழி");
+     if (window.TA_WORDS) {
+       TA_WORDS.forEach(w => { out = out.split(w[0]).join(w[1]); });
+     }
+     return out;
+   }
+   
+   const BUS = (r, l) => (l || lang) === "ta" && r.busTa ? r.busTa : T(r.bus, l);
+   const DEST = (r, l) => (l || lang) === "ta" && r.toTa ? r.toTa : T(r.to, l);
+   const ORIGIN = (r, l) => (l || lang) === "ta" ? r.fromTa : r.from;
+   const FINAL_TO = (r, l) => (l || lang) === "ta" ? r.toTa : r.to;
+   
+   function nowMin() {
+     const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "numeric", minute: "numeric", hour12: false }).formatToParts(new Date());
+     const g = t => parseInt(p.find(x => x.type === t).value, 10);
+     return (g("hour") % 24) * 60 + g("minute");
+   }
+   
+   function getCountdownBadge(busMin) {
+     const now = nowMin();
+     let diff = busMin - now;
+     if (diff < -10) return `<span class="countdown-badge departed">Departed</span>`;
+     if (diff <= 5) return `<span class="countdown-badge urgent">🔥 in ${Math.max(0, diff)}m</span>`;
+     if (diff <= 60) return `<span class="countdown-badge soon">🟢 in ${diff}m</span>`;
+     const hrs = Math.floor(diff / 60);
+     const mins = diff % 60;
+     return `<span class="countdown-badge upcoming">⏳ in ${hrs}h ${mins > 0 ? mins + 'm' : ''}</span>`;
+   }
+   
+   function shareOnWhatsApp(e, r, displayFrom, displayTo, displayTime) {
+     e.stopPropagation();
+     const text = `🚌 *Cheyyar Bus Timings*\n📍 *Route:* ${displayFrom} ➔ ${displayTo}\n🕒 *Time:* ${displayTime}\n🚍 *Bus:* ${BUS(r)}\n\nLive on Cheyyar Bus Hub!`;
+     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+   }
+   
+   /* =========================================================
+      6. VIRTUAL LIVE TRACKING POPUP MODAL (ACCURATE TIMELINE)
+      ========================================================= */
+   
+   function generateLiveTimeline(r) {
+     const currentMinutes = nowMin();
+     let stops = [...getRouteStops(r)];
+     const offsetTable = getOffsetTable(r);
+   
+     const totalTripTime = Math.max(...Object.values(offsetTable)) || 60;
+     const isReturn = Boolean(r.isReturnEstimated);
+     if (isReturn) stops = stops.reverse();
+   
+     const busBaseMin = r.min;
+     const busEndMin = busBaseMin + totalTripTime;
+   
+     let currentStopName = ORIGIN(r);
+     let statusMsg = "";
+     let foundCurrent = false;
+     let stopsHtml = "";
+   
+     stops.forEach((stopKey) => {
+       const k = stopKey.toLowerCase().trim();
+       let off = offsetTable[k] || 0;
+       if (isReturn) off = totalTripTime - off;
+   
+       const stopArrivalMin = (busBaseMin + off) % 1440;
+       const timeStr = minToTimeStr(stopArrivalMin);
+   
+       let stopClass = "upcoming";
+       const cleanStopName = stopKey.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+   
+       const currentDiff = (currentMinutes - (busBaseMin + off));
+   
+       if (currentDiff >= 0 && currentMinutes < busEndMin) {
+         stopClass = "passed";
+         currentStopName = cleanStopName;
+       } else if (!foundCurrent && currentMinutes < (busBaseMin + off)) {
+         stopClass = "current";
+         foundCurrent = true;
+         currentStopName = cleanStopName;
+       }
+   
+       stopsHtml += `
+         <div class="timeline-stop-item ${stopClass}">
+           <span class="stop-dot"></span>
+           <span class="stop-name">${cleanStopName} ${stopClass === 'current' ? '← (Approaching)' : ''}</span>
+           <span class="stop-time">${timeStr}</span>
+         </div>
+       `;
+     });
+   
+     if (currentMinutes < busBaseMin) {
+       statusMsg = `Scheduled: Departs from ${ORIGIN(r)} in ${busBaseMin - currentMinutes} mins`;
+     } else if (currentMinutes >= busEndMin) {
+       statusMsg = `Trip Completed (Reached ${FINAL_TO(r)})`;
+       currentStopName = FINAL_TO(r);
+     } else {
+       statusMsg = `🟢 Live on Route (Near ${currentStopName})`;
+     }
+   
+     const html = `
+       <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; color:#a9aeba; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.06);">
+         <span>${statusMsg}</span>
+         <strong style="color:#ff8a52;">Trip Duration: ${totalTripTime} mins</strong>
+       </div>
+       <div class="timeline-stops-list">
+         ${stopsHtml}
+       </div>
+     `;
+   
+     return { html, currentStopName, isCompleted: currentMinutes >= busEndMin, isUpcoming: currentMinutes < busBaseMin };
+   }
+   
+   const trackerModal = $("tracker-modal");
+   const closeTrackerBtn = $("close-tracker-modal");
+   
+   function openTrackerModal(r) {
+     if (!trackerModal) return;
+     const nameEl = $("t-popup-bus-name");
+     const summaryEl = $("t-popup-route-summary");
+     const contentEl = $("tracker-popup-content");
+   
+     const timelineData = generateLiveTimeline(r);
+   
+     if (nameEl) nameEl.textContent = BUS(r);
+     
+     if (summaryEl) {
+       if (timelineData.isUpcoming) {
+         summaryEl.innerHTML = `Starting from <strong>${ORIGIN(r)}</strong> ➔ ${FINAL_TO(r)} (${r.time})`;
+       } else if (timelineData.isCompleted) {
+         summaryEl.innerHTML = `Reached <strong>${FINAL_TO(r)}</strong> • Service Completed`;
+       } else {
+         summaryEl.innerHTML = `📍 Currently near <strong>${timelineData.currentStopName}</strong> ➔ ${FINAL_TO(r)}`;
+       }
+     }
+   
+     if (contentEl) contentEl.innerHTML = timelineData.html;
+     trackerModal.style.display = "flex";
+   }
+   
+   function closeTrackerModal() {
+     if (trackerModal) trackerModal.style.display = "none";
+   }
+   
+   if (closeTrackerBtn) closeTrackerBtn.onclick = closeTrackerModal;
+   if (trackerModal) {
+     trackerModal.onclick = e => {
+       if (e.target === trackerModal) closeTrackerModal();
+     };
+   }
+   
+   /* =========================================================
+      7. DIRECT LIVE MOVING STATUS BADGE GENERATOR
+      ========================================================= */
+   
+   function getDirectLiveStatusBadge(r) {
+     const currentMinutes = nowMin();
+     let stops = [...getRouteStops(r)];
+     const offsetTable = getOffsetTable(r);
+   
+     const totalTripTime = Math.max(...Object.values(offsetTable)) || 60;
+     const isReturn = Boolean(r.isReturnEstimated);
+     if (isReturn) stops = stops.reverse();
+   
+     const busStartMin = r.min;
+     const busEndMin = busStartMin + totalTripTime;
+   
+     if (currentMinutes < busStartMin) {
+       return `<span class="live-moving-badge departing-soon">⏳ At ${ORIGIN(r)}</span>`;
+     }
+     if (currentMinutes >= busEndMin) {
+       return `<span class="live-moving-badge approaching-dest">🏁 Reached ${FINAL_TO(r)}</span>`;
+     }
+   
+     let currentStop = ORIGIN(r);
+     for (let i = 0; i < stops.length; i++) {
+       const k = stops[i].toLowerCase().trim();
+       let off = offsetTable[k] || 0;
+       if (isReturn) off = totalTripTime - off;
+   
+       const stopArrivalMin = busStartMin + off;
+       if (currentMinutes >= stopArrivalMin) {
+         currentStop = stops[i].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+       } else {
+         break;
+       }
+     }
+   
+     return `
+       <span class="live-moving-badge on-route">
+         <span class="pulse-dot-small"></span>
+         Near ${currentStop}
+       </span>
+     `;
+   }
+   
+   /* =========================================================
+      8. FILTER & RENDER ENGINE (DYNAMIC INTERMEDIATE FIX)
+      ========================================================= */
+   
+   function render() {
+     const qFrom = fromEl ? fromEl.value.trim().toLowerCase() : "";
+     const qTo = toEl ? toEl.value.trim().toLowerCase() : "";
+     const qExtra = searchEl ? searchEl.value.trim().toLowerCase() : "";
+     const showUpcomingOnly = upcomingToggle ? upcomingToggle.checked : true;
+     const currentMinutes = nowMin();
+   
+     const isSearchActive = Boolean(qTo || qExtra || (qFrom && !qFrom.includes("cheyyar") && !qFrom.includes("செய்யாறு")));
+   
+     let targetRows = [];
+     if (isSearchActive) {
+       IDS.forEach(k => {
+         ROUTES[k].rows.forEach(r => targetRows.push(r));
+       });
+     } else {
+       targetRows = ROUTES[current].rows;
+     }
+   
+     tabsEl.querySelectorAll(".tab").forEach(b => {
+       b.setAttribute("aria-selected", !isSearchActive && b.dataset.key === current);
+     });
+   
+     let list = targetRows.filter(r => {
+       const isSearchingFromCheyyar = qFrom && (qFrom.includes("cheyyar") || qFrom.includes("செய்யாறு"));
+       const isSearchingToCheyyar = qTo && (qTo.includes("cheyyar") || qTo.includes("செய்யாறு"));
+   
+       if (isSearchingFromCheyyar && !isSearchingToCheyyar && r.isReturnEstimated) return false;
+       if (isSearchingToCheyyar && !isSearchingFromCheyyar && !r.isReturnEstimated && r.from.toLowerCase().includes("cheyyar")) return false;
+   
+       const stopsList = getRouteStops(r);
+       let stopsMapped = stopsList.map(s => s.toLowerCase());
+       if (r.isReturnEstimated) stopsMapped = [...stopsMapped].reverse();
+   
+       const matchStop = (stopName, query) => {
+         stopName = stopName.toLowerCase().trim();
+         query = query.toLowerCase().trim();
+         if ((query === "arani" || query === "ஆரணி") && stopName.includes("koot road")) return false;
+         if ((query === "kalavai" || query === "கலவை") && stopName.includes("koot road")) return false;
+         return stopName === query || stopName.includes(query);
+       };
+   
+       let fromIdx = -1;
+       if (qFrom) {
+         fromIdx = stopsMapped.findIndex(s => matchStop(s, qFrom));
+         const exactFromMatch = r.from.toLowerCase().includes(qFrom) || r.fromTa.toLowerCase().includes(qFrom);
+         if (!exactFromMatch && fromIdx === -1) return false;
+       }
+   
+       let toIdx = -1;
+       if (qTo) {
+         toIdx = stopsMapped.findIndex(s => matchStop(s, qTo));
+         const exactToMatch = r.to.toLowerCase().includes(qTo) || r.toTa.toLowerCase().includes(qTo);
+         if (!exactToMatch && toIdx === -1) return false;
+       }
+   
+       if (qFrom && qTo && fromIdx !== -1 && toIdx !== -1) {
+         if (fromIdx >= toIdx) return false;
+       }
+   
+       if (qExtra) {
+         const rowText = [r.time, r.bus, r.busTa, r.from, r.to, r.fromTa, r.toTa].join(" ").toLowerCase();
+         if (!rowText.includes(qExtra)) return false;
+       }
+   
+       return true;
+     });
+   
+     list = list.map(r => {
+       const tCalc = getCalculatedTime(r, qFrom);
+       return Object.assign({}, r, {
+         displayTime: tCalc.timeStr,
+         displayMin: tCalc.min,
+         isOffset: tCalc.isOffset,
+         offsetMins: tCalc.offsetMins
+       });
+     });
+   
+     if (showUpcomingOnly) {
+       const upcomingList = list.filter(r => {
+         const offsetTable = getOffsetTable(r);
+         const totalTripMins = Math.max(...Object.values(offsetTable)) || 60;
+         const busEndMin = r.min + totalTripMins;
+         return currentMinutes <= (busEndMin + 1);
+       });
+       list = upcomingList;
+     }
+   
+     list.sort((a, b) => a.displayMin - b.displayMin);
+   
+     const hasPlat = list.some(r => r.platform);
+     $("th-plat").hidden = !hasPlat;
+     rowsEl.innerHTML = "";
+   
+     if (!list.length) {
+       const tr = document.createElement("tr");
+       const td = document.createElement("td");
+       td.colSpan = hasPlat ? 6 : 5;
+       td.className = "empty-cell";
+       td.textContent = (window.I18N && I18N[lang]) ? I18N[lang].empty : "No buses found matching criteria.";
+       tr.appendChild(td);
+       rowsEl.appendChild(tr);
+       countEl.textContent = "0 buses";
+       updateLastBusBanner();
+       return;
+     }
+   
+     const fragment = document.createDocumentFragment();
+   
+     list.forEach(r => {
+       const tr = document.createElement("tr");
+       tr.tabIndex = 0;
+   
+       const originalDeparture = r.time || minToTimeStr(r.min);
+   
+       const tdTime = document.createElement("td");
+       tdTime.className = "td-time";
+       tdTime.innerHTML = `
+         <div class="mobile-time-group">
+           <span>${r.displayTime}</span>
+           <div class="badge-row-mobile">
+             ${getCountdownBadge(r.displayMin)}
+             ${getDirectLiveStatusBadge(r)}
+           </div>
+           ${(qFrom && r.isOffset) ? `
+             <span class="mobile-departure-note">
+               📍 At ${qFrom.toUpperCase()} • Departs Origin: ${originalDeparture}
+             </span>
+           ` : ''}
+         </div>
+       `;
+   
+       const tdBus = document.createElement("td");
+       tdBus.className = "td-bus";
+   
+       const isSivaji = isSivajiBus(r);
+       const busDest = ((r.to || "") + " " + (r.toTa || "")).toLowerCase();
+       const routeId = (r.routeKey || "").toLowerCase();
+   
+       let routeBadge = "";
+       if (isSivaji) {
+         routeBadge = `<span class="route-tag tag-sivaji">📍 வழி: K.வேலூர் / செம்பேடு</span>`;
+       } else if (routeId.includes("korkai") || routeId.includes("korukkai")) {
+         routeBadge = `<span class="route-tag tag-korkai">📍 வழி: கொரக்கை</span>`;
+       } else if (routeId.includes("arani")) {
+         routeBadge = `<span class="route-tag tag-arani">📍 வழி: S.V நகரம்</span>`;
+       } else if (routeId.includes("parasur") || busDest.includes("parasur") || busDest.includes("பாராசூர்")) {
+         routeBadge = `<span class="route-tag tag-parasur">📍 வழி: பாராசூர்</span>`;
+       } else if (routeId.includes("gingee") || routeId.includes("senji") || busDest.includes("gingee") || busDest.includes("செஞ்சி")) {
+         routeBadge = `<span class="route-tag tag-gingee">📍 வழி: வந்தவாசி ➔ செஞ்சி</span>`;
+       } else if (routeId.includes("puducherry") || busDest.includes("puducherry") || busDest.includes("புதுச்சேரி")) {
+         routeBadge = `<span class="route-tag tag-puducherry">📍 வழி: திண்டிவனம் ➔ பாண்டி</span>`;
+       } else if (isVembakkamRoute(r)) {
+         routeBadge = `<span class="route-tag tag-vembakkam">📍 வழி: வெம்பாக்கம்</span>`;
+       } else if (routeId.includes("arcot") || busDest.includes("vellore") || busDest.includes("வேலூர்") || busDest.includes("arcot") || busDest.includes("ஆற்காடு")) {
+         routeBadge = `<span class="route-tag tag-arcot">📍 வழி: SH-5 ஆற்காடு பைபாஸ்</span>`;
+       } else if (routeId.includes("thavasi") || busDest.includes("thavasi") || busDest.includes("தவசி")) {
+         routeBadge = `<span class="route-tag tag-thavasi">📍 வழி: தவசி</span>`;
+       } else if (routeId.includes("kalavai") || busDest.includes("kalavai") || busDest.includes("கலவை")) {
+         routeBadge = `<span class="route-tag tag-kalavai">📍 வழி: கலவை</span>`;
+       } else if (routeId.includes("kanchipuram") || busDest.includes("dusi") || busDest.includes("mamandur") || busDest.includes("kanchipuram") || busDest.includes("காஞ்சிபுரம்")) {
+         routeBadge = `<span class="route-tag tag-kanchi">📍 வழி: மாமண்டூர் / தூசி</span>`;
+       }
+   
+       const approxTag = r.isReturnEstimated 
+         ? `<span class="approx-badge">~ Approx Return</span>` 
+         : '';
+   
+       tdBus.innerHTML = `
+         <div class="bus-name-row">
+           <span>${BUS(r)}</span>
+           ${routeBadge}
+           ${approxTag}
+         </div>
+       `;
+   
+       if (r.verify) {
+         const c = document.createElement("small");
+         c.className = "chk";
+         c.textContent = "⚠ " + (window.I18N && I18N[lang] ? I18N[lang].chk : "Verify board");
+         tdBus.appendChild(c);
+       }
+   
+       const liveTrackBtn = document.createElement("button");
+       liveTrackBtn.type = "button";
+       liveTrackBtn.className = "live-tracker-btn";
+       liveTrackBtn.innerHTML = `<span class="pulse-radar"></span> Track Route`;
+       
+       liveTrackBtn.addEventListener("click", e => {
+         e.stopPropagation();
+         openTrackerModal(r);
+       });
+   
+       tdBus.appendChild(liveTrackBtn);
+   
+       const tdFrom = document.createElement("td");
+       tdFrom.className = "td-from";
+       
+       // Intermediate origin check (e.g. Vembakkam)
+       if (qFrom && r.isOffset) {
+         const cleanFromQuery = qFrom.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+         tdFrom.innerHTML = `<strong>${cleanFromQuery}</strong> <small style="display:block; font-size:10px; color:#838a9c;">(Orig: ${ORIGIN(r)})</small>`;
+       } else {
+         tdFrom.textContent = ORIGIN(r);
+       }
+   
+       const tdDest = document.createElement("td");
+       tdDest.className = "td-dest";
+       
+       if (qTo) {
+         const cleanToQuery = qTo.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+         tdDest.innerHTML = `<strong>${cleanToQuery}</strong>`;
+       } else {
+         tdDest.textContent = FINAL_TO(r);
+       }
+   
+       tr.appendChild(tdTime);
+       tr.appendChild(tdBus);
+       tr.appendChild(tdFrom);
+       tr.appendChild(tdDest);
+   
+       if (hasPlat) {
+         const tdPlat = document.createElement("td");
+         tdPlat.className = "td-plat";
+         tdPlat.textContent = r.platform || "–";
+         tr.appendChild(tdPlat);
+       }
+   
+       const tdAction = document.createElement("td");
+       tdAction.className = "td-action";
+       const waBtn = document.createElement("button");
+       waBtn.type = "button";
+       waBtn.className = "btn-whatsapp-share";
+       waBtn.title = "Share on WhatsApp";
+       waBtn.setAttribute("aria-label", "Share bus timing on WhatsApp");
+       waBtn.innerHTML = `
+         <svg viewBox="0 0 24 24">
+           <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.32a8.19 8.19 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.19-.09-1.12-.55-1.3-.61-.17-.06-.3-.09-.43.09-.13.19-.49.61-.6.74-.11.13-.23.15-.42.06-.19-.09-.81-.3-1.55-.95-.57-.51-.96-1.14-1.07-1.33-.11-.19-.01-.3.08-.39.09-.08.19-.23.29-.34.1-.11.13-.19.19-.32.06-.13.03-.25-.01-.34-.05-.09-.43-1.04-.59-1.42-.16-.38-.32-.33-.43-.33h-.37c-.13 0-.34.05-.51.23s-.68.66-.68 1.61.69 1.87.79 2c.1.13 1.36 2.08 3.3 2.91.46.2.82.32 1.1.41.46.15.89.13 1.22.08.37-.06 1.12-.46 1.28-.9.16-.45.16-.83.11-.91-.04-.09-.17-.15-.36-.25"/>
+         </svg>
+       `;
+       waBtn.addEventListener("click", e => shareOnWhatsApp(e, r, tdFrom.textContent, tdDest.textContent, r.displayTime));
+       tdAction.appendChild(waBtn);
+       tr.appendChild(tdAction);
+   
+       if (r === activeRow) tr.classList.add("active");
+       tr.addEventListener("click", () => setActive(r));
+   
+       r._el = tr;
+       fragment.appendChild(tr);
+     });
+   
+     rowsEl.appendChild(fragment);
+     const countMsg = (window.I18N && I18N[lang] && I18N[lang].count) ? I18N[lang].count(list.length) : " buses";
+     countEl.textContent = list.length + countMsg;
+   
+     if (!activeRow && list.length > 0) {
+       activeRow = list[0];
+       setActive(list[0]);
+     } else if (activeRow && window.Bus3D && Bus3D.setSign) {
+       Bus3D.setSign(current, DEST(activeRow), BUS(activeRow), activeRow.displayTime || activeRow.time);
+     }
+   
+     updateLastBusBanner();
+   }
+   
+   function setActive(r) {
+     activeRow = r;
+     signRows[current] = r;
+     rowsEl.querySelectorAll("tr.active").forEach(e => e.classList.remove("active"));
+     if (r._el) r._el.classList.add("active");
+     if (window.Bus3D && Bus3D.setSign) {
+       Bus3D.setSign(current, DEST(r), BUS(r), r.displayTime || r.time);
+       Bus3D.focus(current);
+     }
+   }
+   
+   /* =========================================================
+      9. CONTROLS, ROUTING & 3D TERMINAL MULTI-SIGN LOGIC
+      ========================================================= */
+   
+   function updateAllBusSigns() {
+     if (!window.Bus3D || !Bus3D.setSign) return;
+     const now = nowMin();
+   
+     IDS.forEach(routeKey => {
+       const routeData = ROUTES[routeKey];
+       if (!routeData || !routeData.rows || routeData.rows.length === 0) return;
+       const upcomingBus = routeData.rows.find(r => r.min >= now) || routeData.rows[0];
+   
+       if (upcomingBus) {
+         Bus3D.setSign(
+           routeKey,
+           DEST(upcomingBus),
+           BUS(upcomingBus),
+           upcomingBus.displayTime || upcomingBus.time
+         );
+       }
+     });
+   }
+   
+   function selectRoute(k) {
+     current = k;
+     fromEl.value = "";
+     toEl.value = "";
+     searchEl.value = "";
+     nextRow = null;
+     lastNext = null;
+     msgEl.textContent = "";
+   
+     const d1 = $("from-dropdown");
+     const d2 = $("to-dropdown");
+     if (d1) d1.style.display = "none";
+     if (d2) d2.style.display = "none";
+   
+     const rows = ROUTES[k].rows;
+     const now = nowMin();
+     let upcoming = rows.find(r => r.min >= now) || rows[0];
+     activeRow = upcoming;
+     signRows[k] = upcoming;
+   
+     render();
+     updateAllBusSigns();
+     updateLastBusBanner();
+   
+     if (window.Bus3D && Bus3D.focus) {
+       Bus3D.focus(k);
+     }
+   }
+   
+   function buildTabs() {
+     tabsEl.innerHTML = "";
+     IDS.forEach(k => {
+       const b = document.createElement("button");
+       b.className = "tab";
+       b.type = "button";
+       b.setAttribute("role", "tab");
+       b.setAttribute("aria-selected", k === current);
+       b.dataset.key = k;
+       b.append(lang === "ta" ? ROUTES[k].tamil : ROUTES[k].name);
+       const s = document.createElement("small");
+       s.textContent = lang === "ta" ? ROUTES[k].name : ROUTES[k].tamil;
+       b.appendChild(s);
+       b.addEventListener("click", () => selectRoute(k));
+       tabsEl.appendChild(b);
+     });
+   }
+   
+   function updateLanguageUI() {
+     if (fromEl) fromEl.placeholder = lang === "ta" ? "புறப்படும் இடம் (எ.கா: Cheyyar)" : "e.g. Cheyyar";
+     if (toEl) toEl.placeholder = lang === "ta" ? "சேரும் இடம் (எ.கா: Kanchipuram)" : "e.g. Kanchipuram";
+     if (searchEl) searchEl.placeholder = lang === "ta" ? "பஸ் எண் / நேரம் (எ.கா: 130, T59)" : "Filter by No (e.g. 130, 438, T59)";
+   
+     const nextBtn = $("next-btn");
+     if (nextBtn) {
+       nextBtn.innerHTML = lang === "ta" ? `⚡ அடுத்த பஸ்` : `⚡ Find Next Bus`;
+     }
+   
+     const heroTitle = document.querySelector(".hero-title");
+     if (heroTitle) {
+       heroTitle.textContent = lang === "ta" ? "செய்யாறு பேருந்து கால அட்டவணை" : "Plan Your Journey From Cheyyar";
+     }
+   }
+   
+   function applyLanguage(newLang) {
+     lang = newLang;
+     document.documentElement.lang = lang;
+     localStorage.setItem("cheyyar_bus_lang", lang);
+   
+     if (langLabel) {
+       langLabel.textContent = lang === "en" ? "தமிழ்" : "English";
+     }
+   
+     updateLanguageUI();
+     populateLocationDatalists();
+     buildTabs();
+     render();
+     updateAllBusSigns();
+   }
+   
+   if (langBtn) {
+     langBtn.addEventListener("click", e => {
+       e.preventDefault();
+       const nextLang = lang === "en" ? "ta" : "en";
+       applyLanguage(nextLang);
+     });
+   }
+   
+   /* =========================================================
+      10. LAST BUS ALERT ENGINE (EVENING 7:00 PM TO MIDNIGHT)
+      ========================================================= */
+   
+   function updateLastBusBanner() {
+     const alertEl = $("last-bus-alert");
+     const detailsEl = $("last-bus-details");
+     if (!alertEl || !detailsEl) return;
+   
+     const currentMinutes = nowMin();
+     const isNightTime = currentMinutes >= (19 * 60) && currentMinutes <= 1439;
+   
+     if (!isNightTime) {
+       alertEl.style.display = "none";
+       return;
+     }
+   
+     const activeRows = (ROUTES[current] && ROUTES[current].rows) ? ROUTES[current].rows : [];
+     if (!activeRows.length) {
+       alertEl.style.display = "none";
+       return;
+     }
+   
+     const lastBus = [...activeRows].sort((a, b) => b.min - a.min)[0];
+     const diff = lastBus.min - currentMinutes;
+   
+     if (diff < -10) {
+       detailsEl.innerHTML = `Tonight's last service (${BUS(lastBus)} to ${DEST(lastBus)}) has <strong>already departed</strong>.`;
+       alertEl.classList.remove("urgent");
+       alertEl.style.display = "flex";
+     } else if (diff <= 45) {
+       alertEl.classList.add("urgent");
+       detailsEl.innerHTML = `Final bus to <strong>${DEST(lastBus)}</strong> (${BUS(lastBus)}) leaves at <strong>${lastBus.time}</strong> (🚨 in ${Math.max(0, diff)} mins)!`;
+       alertEl.style.display = "flex";
+     } else {
+       alertEl.classList.remove("urgent");
+       detailsEl.innerHTML = `Tonight's final service to <strong>${DEST(lastBus)}</strong> is at <strong>${lastBus.time}</strong> (${BUS(lastBus)}).`;
+       alertEl.style.display = "flex";
+     }
+   }
+   
+   const closeAlertBtn = $("close-last-bus");
+   if (closeAlertBtn) {
+     closeAlertBtn.addEventListener("click", () => {
+       const alertEl = $("last-bus-alert");
+       if (alertEl) alertEl.style.display = "none";
+     });
+   }
+   
+   function debounce(fn, delay = 200) {
+     let timer;
+     return function (...args) {
+       clearTimeout(timer);
+       timer = setTimeout(() => fn.apply(this, args), delay);
+     };
+   }
+   const debouncedRender = debounce(render, 200);
+   
+   fromEl.addEventListener("input", debouncedRender);
+   toEl.addEventListener("input", debouncedRender);
+   searchEl.addEventListener("input", debouncedRender);
+   
+   if (upcomingToggle) upcomingToggle.addEventListener("change", render);
+   
+   $("clear-from-btn").addEventListener("click", () => { 
+     fromEl.value = ""; 
+     const d = $("from-dropdown");
+     if (d) d.style.display = "none";
+     render(); 
+   });
+   
+   $("clear-to-btn").addEventListener("click", () => { 
+     toEl.value = ""; 
+     const d = $("to-dropdown");
+     if (d) d.style.display = "none";
+     render(); 
+   });
+   
+   swapBtn.addEventListener("click", () => {
+     const tmp = fromEl.value;
+     fromEl.value = toEl.value;
+     toEl.value = tmp;
+     render();
+   });
+   
+   document.querySelectorAll(".chip-btn[data-city]").forEach(chip => {
+     chip.addEventListener("click", () => {
+       fromEl.value = "Cheyyar";
+       searchEl.value = "";
+       toEl.value = chip.dataset.city;
+   
+       const d1 = $("from-dropdown");
+       const d2 = $("to-dropdown");
+       if (d1) d1.style.display = "none";
+       if (d2) d2.style.display = "none";
+   
+       render();
+     });
+   });
+   
+   $("clear-all-filters").addEventListener("click", () => {
+     fromEl.value = "";
+     toEl.value = "";
+     searchEl.value = "";
+     const d1 = $("from-dropdown");
+     const d2 = $("to-dropdown");
+     if (d1) d1.style.display = "none";
+     if (d2) d2.style.display = "none";
+     render();
+   });
+   
+   /* =========================================================
+      11. FIND NEXT BUS ACTION
+      ========================================================= */
+   
+   $("next-btn").addEventListener("click", () => {
+     fromEl.value = "";
+     toEl.value = "";
+     searchEl.value = "";
+   
+     const rows = ROUTES[current].rows;
+     const now = nowMin();
+   
+     let r = rows.find(x => x.min >= now);
+     let isTomorrow = false;
+   
+     if (!r) {
+       r = rows[0];
+       isTomorrow = true;
+     }
+   
+     nextRow = r;
+     lastNext = { r, isTomorrow };
+   
+     render();
+     setActive(r);
+   
+     if (window.Bus3D) {
+       if (Bus3D.setSign) {
+         Bus3D.setSign(current, DEST(r), BUS(r), r.displayTime || r.time);
+       }
+       if (Bus3D.focus) {
+         Bus3D.focus(current);
+       }
+     }
+   
+     if (msgEl) {
+       const diff = r.min - now;
+       const timeText = isTomorrow 
+         ? `Tomorrow at ${r.displayTime || r.time}` 
+         : `${r.displayTime || r.time} (${diff > 0 ? 'in ' + diff + ' mins' : 'now'})`;
+   
+       msgEl.innerHTML = `
+         <div style="background: rgba(255, 122, 69, 0.15); border: 1px solid #ff7a45; padding: 10px 14px; border-radius: 8px; margin: 12px 0; color: #ff7a45; font-weight: 600;">
+           ⚡ Next Bus: <strong>${BUS(r)}</strong> to <strong>${DEST(r)}</strong> • Departure: <strong>${timeText}</strong>
+         </div>
+       `;
+     }
+   
+     setTimeout(() => {
+       if (r._el) {
+         r._el.scrollIntoView({ block: "center", behavior: "smooth" });
+         r._el.classList.add("active-highlight");
+         setTimeout(() => r._el.classList.remove("active-highlight"), 2500);
+       }
+     }, 100);
+   });
+   
+   $("theme-btn").addEventListener("click", () => {
+     const root = document.documentElement;
+     root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+   });
+   
+   const devModal = $("dev-modal");
+   const openDevBtn = $("open-dev-modal");
+   const closeDevBtn = $("close-dev-modal");
+   const closeDevBtnAction = $("close-dev-modal-btn");
+   
+   if (openDevBtn && devModal) openDevBtn.addEventListener("click", () => { devModal.style.display = "flex"; });
+   if (closeDevBtn && devModal) closeDevBtn.addEventListener("click", () => { devModal.style.display = "none"; });
+   if (closeDevBtnAction && devModal) closeDevBtnAction.addEventListener("click", () => { devModal.style.display = "none"; });
+   if (devModal) devModal.addEventListener("click", e => { if (e.target === devModal) devModal.style.display = "none"; });
+   
+/* =========================================================
+   12. 3-CLIP SYNCHRONIZED AUDIO & TEXT VOICE ENGINE
+   - Audio 1 (1.ogg) + Text 1 (Greeting)
+   - Audio 2 (2.ogg) + Text 2 (Success)
+   - Audio 3 (3.ogg) + Text 3 (Fallback)
+   * Strict Rule: Audio mudiyura varai adhan text maraiaadhu!
+   ========================================================= */
 
-   :root {
-     --bg: #050609;
-     --bg-soft: #0a0c11;
-     --card: #101218;
-     --card-2: #14171f;
-     --card-3: #191d26;
+   const avatarWidget = $("ai-avatar-widget");
+   const avatarBubble = $("voice-bubble");
+   const avatarText = $("voice-bubble-text");
    
-     --glass: rgba(255, 255, 255, 0.045);
-     --glass-strong: rgba(255, 255, 255, 0.07);
+   let recognition = null;
+   let currentAudio = null;
+   let hasAutoTriggered = false;
+   let silenceTimer = null;
+   let isPlayingAudio = false;
    
-     --border: rgba(255, 255, 255, 0.075);
-     --border-light: rgba(255, 255, 255, 0.14);
-     --border-hairline: rgba(255, 255, 255, 0.05);
+   // Ungaloda Exact Audio Clips
+   const AUDIO_CLIPS = {
+     greeting: new Audio("audio/1.ogg"),
+     success: new Audio("audio/2.ogg"),
+     fallback: new Audio("audio/3.ogg")
+   };
    
-     --text: #f6f7fb;
-     --text-soft: #a9aeba;
-     --text-muted: #6c7280;
+   // Strict Playback Controller with Text Binding
+   function playAudioWithText(clipKey, textMessage, onFinished) {
+     // Pazhaiya audio irundha stop pannuvom
+     if (currentAudio) {
+       currentAudio.pause();
+       currentAudio.currentTime = 0;
+     }
    
-     --primary: #ff5c35;
-     --primary-2: #ff8a52;
-     --primary-glow: rgba(255, 92, 53, 0.35);
+     // Bubble-ai open panni correct text-ai set pannuvom
+     if (avatarBubble) avatarBubble.style.display = "block";
+     if (avatarText) avatarText.textContent = textMessage;
    
-     --purple: #8b5cf6;
-     --purple-2: #a78bfa;
-     --green: #2fd68f;
-     --blue: #4f9cff;
-     --yellow: #ffc857;
-     --danger: #ff4d67;
+     const audio = AUDIO_CLIPS[clipKey];
+     if (!audio) {
+       isPlayingAudio = false;
+       if (onFinished) onFinished();
+       return;
+     }
    
-     --radius: 20px;
-     --radius-small: 13px;
-     --radius-lg: 26px;
+     isPlayingAudio = true;
+     currentAudio = audio;
+     audio.currentTime = 0;
    
-     --shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
-     --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.3);
-     --shadow-lift: 0 18px 45px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
-     --inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+     if (avatarWidget) avatarWidget.classList.add("speaking");
    
-     --ease: cubic-bezier(0.16, 1, 0.3, 1);
-     --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+     audio.play()
+       .then(() => {
+         audio.onended = () => {
+           isPlayingAudio = false;
+           currentAudio = null;
+           if (avatarWidget) avatarWidget.classList.remove("speaking");
+           // Audio complete aana piragu dhaan next callback trigger aagum
+           if (onFinished) onFinished();
+         };
+       })
+       .catch(() => {
+         isPlayingAudio = false;
+         currentAudio = null;
+         if (avatarWidget) avatarWidget.classList.remove("speaking");
+         if (onFinished) onFinished();
+       });
    }
    
-   [data-theme="light"] {
-     --bg: #f5f6fa;
-     --bg-soft: #ebedf5;
-     --card: #ffffff;
-     --card-2: #f8f9fd;
-     --card-3: #f0f2f8;
-     --glass: rgba(0, 0, 0, 0.03);
-     --glass-strong: rgba(0, 0, 0, 0.06);
-     --border: rgba(0, 0, 0, 0.08);
-     --border-light: rgba(0, 0, 0, 0.16);
-     --text: #0e1118;
-     --text-soft: #4b5263;
-     --text-muted: #838a9c;
-     --primary: #ff5c35;
-     --primary-2: #ff7a55;
-     --primary-glow: rgba(255, 92, 53, 0.22);
+   function stopListening() {
+     if (silenceTimer) {
+       clearTimeout(silenceTimer);
+       silenceTimer = null;
+     }
+     if (recognition) {
+       try { recognition.abort(); } catch(e) {}
+     }
+     if (avatarWidget) avatarWidget.classList.remove("listening");
    }
+   
+   function handleFallback() {
+     stopListening();
+   
+     // AUDIO 3 + TEXT 3: Fallback Audio mudiyum varai Text 3 mattume screen-la irukkum
+     playAudioWithText(
+       "fallback",
+       "ஊரு நேம் சரியா சொல்லுங்க, எனக்கு கேக்கல!",
+       () => {
+         // Audio 3 mudindhavudan 2.5s kazhithu bubble close aagum
+         setTimeout(() => {
+           if (!isPlayingAudio && avatarBubble) {
+             avatarBubble.style.display = "none";
+           }
+         }, 2500);
+       }
+     );
+   }
+   
+   function startVoiceAssistant() {
+     if (isPlayingAudio) return; // Oru audio play aagi irundhaa pudhusa start aagadhu
+   
+     // 1. AUDIO 1 + TEXT 1: Greeting mudiyum varaikkum Text 1 mattum dhaan screen-la irukkum
+     playAudioWithText(
+       "greeting",
+       "வணக்கம்! இது உங்க செய்யார் பஸ் ஆப். உங்களுக்கு எந்த ஊருக்கு பஸ் பாக்கணும்?",
+       () => {
+         // AUDIO 1 FULL-AA MUDINDHA PINBU MATTUME MIC OPEN AAGUM
+         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+         if (!SpeechRecognition) {
+           if (avatarText) avatarText.textContent = "Browser-la mic support illa.";
+           return;
+         }
+   
+         stopListening();
+         let hasCapturedSpeech = false;
+   
+         recognition = new SpeechRecognition();
+         recognition.lang = "ta-IN";
+         recognition.interimResults = false;
+   
+         recognition.onstart = () => {
+           if (avatarWidget) avatarWidget.classList.add("listening");
+           // Audio 1 mudinja piragu dhaan mic text maaranum
+           if (avatarText) avatarText.textContent = "கேட்கிறது... பேசுங்கள் (5s)...";
+   
+           // 5s silence wait timer
+           silenceTimer = setTimeout(() => {
+             if (!hasCapturedSpeech && !isPlayingAudio) {
+               handleFallback();
+             }
+           }, 5000);
+         };
+   
+         recognition.onresult = (e) => {
+           if (isPlayingAudio) return;
+   
+           hasCapturedSpeech = true;
+           if (silenceTimer) clearTimeout(silenceTimer);
+   
+           const transcript = e.results[0][0].transcript.toLowerCase().trim();
+   
+           let matchedCity = "";
+           if (transcript.includes("kanchi") || transcript.includes("காஞ்சி")) matchedCity = "Kanchipuram";
+           else if (transcript.includes("arani") || transcript.includes("ஆரணி")) matchedCity = "Arani";
+           else if (transcript.includes("vellore") || transcript.includes("வேலூர்")) matchedCity = "Vellore";
+           else if (transcript.includes("vandavasi") || transcript.includes("வந்தவாசி")) matchedCity = "Vandavasi";
+           else if (transcript.includes("chennai") || transcript.includes("சென்னை")) matchedCity = "Chennai";
+           else if (transcript.includes("vembakkam") || transcript.includes("வெம்பாக்கம்")) matchedCity = "Vembakkam";
+           else if (transcript.includes("arcot") || transcript.includes("ஆற்காடு")) matchedCity = "Arcot";
+           else if (transcript.includes("gingee") || transcript.includes("செஞ்சி")) matchedCity = "Gingee";
+           else if (transcript.includes("puducherry") || transcript.includes("பாண்டி") || transcript.includes("புதுச்சேரி")) matchedCity = "Puducherry";
+           else if (transcript.includes("kalavai") || transcript.includes("கலவை")) matchedCity = "Kalavai";
+   
+           if (matchedCity) {
+             stopListening();
+             fromEl.value = "Cheyyar";
+             toEl.value = matchedCity;
+             searchEl.value = "";
+             render();
+   
+             // AUDIO 2 + TEXT 2: Success Audio mudiyum varaikkum Text 2 mattume screen-la irukkum
+             playAudioWithText(
+               "success",
+               `நீங்க கேட்ட ${matchedCity} பஸ் டீடைல்ஸ் இதோ உங்களுக்காக!`,
+               () => {
+                 // Audio 2 mudindhadhum 3s kazhithu bubble close aagum
+                 setTimeout(() => {
+                   if (!isPlayingAudio && avatarBubble) {
+                     avatarBubble.style.display = "none";
+                   }
+                 }, 3000);
+               }
+             );
+           } else {
+             handleFallback();
+           }
+         };
+   
+         recognition.onerror = (e) => {
+           if (e.error === "no-speech" && !hasCapturedSpeech) return;
+           if (!hasCapturedSpeech && !isPlayingAudio) handleFallback();
+         };
+   
+         recognition.onend = () => {
+           if (!hasCapturedSpeech && silenceTimer && !isPlayingAudio) {
+             try { recognition.start(); } catch(err) {}
+           }
+         };
+   
+         try {
+           recognition.start();
+         } catch(err) {
+           if (avatarWidget) avatarWidget.classList.remove("listening");
+         }
+       }
+     );
+   }
+   // 3. Ultra-Smooth Drag & Drop Anywhere on Screen
+   function makeWidgetDraggable(el) {
+     if (!el) return;
+     let isDragging = false;
+     let startX, startY, initialLeft, initialTop;
+     let hasMoved = false;
+   
+     function onPointerDown(e) {
+       // Only drag with primary touch/click
+       if (e.button !== undefined && e.button !== 0) return;
+       isDragging = true;
+       hasMoved = false;
+   
+       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+   
+       const rect = el.getBoundingClientRect();
+       startX = clientX;
+       startY = clientY;
+       initialLeft = rect.left;
+       initialTop = rect.top;
+   
+       // Switch to absolute positioning from current bounding rect
+       el.style.bottom = "auto";
+       el.style.right = "auto";
+       el.style.left = `${initialLeft}px`;
+       el.style.top = `${initialTop}px`;
+   
+       document.addEventListener("mousemove", onPointerMove, { passive: false });
+       document.addEventListener("touchmove", onPointerMove, { passive: false });
+       document.addEventListener("mouseup", onPointerUp);
+       document.addEventListener("touchend", onPointerUp);
+     }
+   
+     function onPointerMove(e) {
+       if (!isDragging) return;
+       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+   
+       const deltaX = clientX - startX;
+       const deltaY = clientY - startY;
+   
+       if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+         hasMoved = true;
+       }
+   
+       const maxX = window.innerWidth - el.offsetWidth - 10;
+       const maxY = window.innerHeight - el.offsetHeight - 10;
+   
+       let newX = Math.min(Math.max(10, initialLeft + deltaX), maxX);
+       let newY = Math.min(Math.max(10, initialTop + deltaY), maxY);
+   
+       el.style.left = `${newX}px`;
+       el.style.top = `${newY}px`;
+   
+       e.preventDefault();
+     }
+   
+     function onPointerUp() {
+       isDragging = false;
+       document.removeEventListener("mousemove", onPointerMove);
+       document.removeEventListener("touchmove", onPointerMove);
+       document.removeEventListener("mouseup", onPointerUp);
+       document.removeEventListener("touchend", onPointerUp);
+   
+       // If user simply tapped without dragging, trigger assistant
+       if (!hasMoved) {
+         startVoiceAssistant();
+       }
+     }
+   
+     el.addEventListener("mousedown", onPointerDown);
+     el.addEventListener("touchstart", onPointerDown, { passive: true });
+   }
+   
+   makeWidgetDraggable(avatarWidget);
+   
+   // Initial Auto-Trigger on screen tap after splash screen ends
+   document.addEventListener("click", () => {
+     if (!hasAutoTriggered && document.body.classList.contains("app-ready")) {
+       hasAutoTriggered = true;
+       startVoiceAssistant();
+     }
+   }, { once: true });
    
    /* =========================================================
-      GLOBAL RESET & ZERO-OVERFLOW PROTECTION
+      13. APP LOADING & INITIALIZATION
       ========================================================= */
    
-   *, *::before, *::after {
-     box-sizing: border-box !important;
-   }
+   function initLoadingScreen() {
+     const splashEl = document.getElementById("app-loading-screen");
+     const fillEl = document.getElementById("progress-fill");
+     const numEl = document.getElementById("progress-num");
+     if (!splashEl || !fillEl || !numEl) return;
    
-   html {
-     scroll-behavior: smooth;
-     background: var(--bg);
-     width: 100%;
-     max-width: 100vw;
-     overflow-x: hidden;
+     let progress = 0;
+     const interval = setInterval(() => {
+       progress += Math.floor(Math.random() * 4) + 2;
+       if (progress >= 100) {
+         progress = 100;
+         clearInterval(interval);
+         fillEl.style.width = "100%";
+         numEl.textContent = "100%";
+         setTimeout(() => {
+           splashEl.classList.add("loaded");
+           setTimeout(() => {
+             splashEl.style.display = "none";
+             document.body.classList.add("app-ready"); // Voice widget appear aagum
+           }, 500);
+         }, 400);
+       } else {
+         fillEl.style.width = progress + "%";
+         numEl.textContent = progress + "%";
+       }
+     }, 35);
    }
-   
-   body {
-     margin: 0;
-     padding: 0;
-     width: 100%;
-     max-width: 100vw;
-     min-height: 100vh;
-     min-height: 100dvh;
-     overflow-x: hidden;
-     background:
-       radial-gradient(circle at 12% -4%, rgba(255, 92, 53, 0.09), transparent 30%),
-       radial-gradient(circle at 92% 8%, rgba(139, 92, 246, 0.07), transparent 32%),
-       radial-gradient(circle at 50% 100%, rgba(47, 214, 143, 0.035), transparent 40%),
-       var(--bg);
-     background-attachment: fixed;
-     color: var(--text);
-     font-family: "DM Sans", "Noto Sans Tamil", sans-serif;
-     -webkit-font-smoothing: antialiased;
-     text-rendering: optimizeLegibility;
-   }
-   
-   ::selection {
-     background: var(--primary);
-     color: #fff;
-   }
-   
    /* =========================================================
-      LOADING SCREEN (MOVING BUS ANIMATION)
-      ========================================================= */
-   
-   .loading-screen-overlay {
-     position: fixed;
-     inset: 0;
-     z-index: 99999;
-     background: #050609;
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-     overflow: hidden;
-     transition: opacity 0.5s var(--ease), visibility 0.5s ease;
-   }
-   
-   .loading-screen-overlay.loaded {
-     opacity: 0;
-     visibility: hidden;
-     pointer-events: none;
-   }
-   
-   .splash-glow {
-     position: absolute;
-     top: 50%;
-     left: 50%;
-     width: 500px;
-     height: 500px;
-     transform: translate(-50%, -50%);
-     background: radial-gradient(circle, rgba(255, 92, 53, 0.18), transparent 70%);
-     pointer-events: none;
-   }
-   
-   .loader-content {
-     position: relative;
-     z-index: 2;
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     width: min(340px, 88vw);
-     text-align: center;
-   }
-   
-   .bus-road-scene {
-     position: relative;
-     width: 220px;
-     height: 110px;
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: flex-end;
-     margin-bottom: 10px;
-   }
-   
-   .scene-cloud {
-     position: absolute;
-     font-size: 15px;
-     opacity: 0.25;
-     animation: cloudMove 4s linear infinite;
-   }
-   .cloud-1 { top: 8px; left: 0; animation-duration: 5s; }
-   .cloud-2 { top: 22px; left: 50px; animation-duration: 3.5s; animation-delay: 1.5s; }
-   @keyframes cloudMove {
-     from { transform: translateX(180px); opacity: 0; }
-     20% { opacity: 0.35; }
-     80% { opacity: 0.35; }
-     to { transform: translateX(-40px); opacity: 0; }
-   }
-   
-   .moving-bus-wrap {
-     position: relative;
-     animation: busBounce 0.45s ease-in-out infinite alternate;
-   }
-   @keyframes busBounce {
-     0% { transform: translateY(0); }
-     100% { transform: translateY(-3px); }
-   }
-   
-   .bus-body {
-     width: 105px;
-     height: 54px;
-     background: linear-gradient(180deg, #b91c1c 0%, #b91c1c 60%, #fbbf24 61%, #fbbf24 100%);
-     border-radius: 12px 18px 6px 6px;
-     position: relative;
-     box-shadow: 0 10px 25px rgba(255, 92, 53, 0.35);
-     border: 1px solid rgba(255, 255, 255, 0.15);
-   }
-   
-   .bus-roof {
-     position: absolute;
-     top: -4px;
-     left: 8px;
-     right: 8px;
-     height: 5px;
-     background: #ffffff;
-     border-radius: 4px 4px 0 0;
-   }
-   
-   .bus-windows {
-     position: absolute;
-     top: 8px;
-     left: 8px;
-     right: 8px;
-     display: flex;
-     gap: 4px;
-   }
-   .bus-windows .win {
-     flex: 1;
-     height: 18px;
-     background: #0f1523;
-     border-radius: 3px;
-     border: 1px solid rgba(255, 255, 255, 0.2);
-   }
-   .bus-windows .win.front {
-     border-radius: 3px 10px 3px 3px;
-     background: #192132;
-   }
-   
-   .bus-strip {
-     position: absolute;
-     bottom: 15px;
-     left: 0;
-     right: 0;
-     height: 4px;
-     background: #ffffff;
-     opacity: 0.8;
-   }
-   
-   .bus-light {
-     position: absolute;
-     right: 2px;
-     bottom: 8px;
-     width: 6px;
-     height: 6px;
-     background: #ffea79;
-     border-radius: 50%;
-     box-shadow: 0 0 10px 3px #ffea79;
-   }
-   
-   .bus-wheel {
-     position: absolute;
-     bottom: -9px;
-     width: 19px;
-     height: 19px;
-     background: #181a20;
-     border-radius: 50%;
-     border: 3.5px solid #fbbf24;
-     box-shadow: inset 0 0 0 2px #fff;
-     animation: wheelSpin 0.35s linear infinite;
-   }
-   .wheel-front { right: 12px; }
-   .wheel-back { left: 14px; }
-   @keyframes wheelSpin {
-     100% { transform: rotate(360deg); }
-   }
-   
-   .bus-exhaust {
-     position: absolute;
-     left: -12px;
-     bottom: 6px;
-   }
-   .bus-exhaust span {
-     display: block;
-     width: 5px;
-     height: 5px;
-     background: rgba(255, 255, 255, 0.4);
-     border-radius: 50%;
-     margin-bottom: 2px;
-     animation: exhaustSmoke 0.6s infinite ease-out;
-   }
-   .bus-exhaust span:nth-child(2) { animation-delay: 0.2s; }
-   @keyframes exhaustSmoke {
-     from { transform: translateX(0) scale(1); opacity: 0.7; }
-     to { transform: translateX(-18px) scale(2.2); opacity: 0; }
-   }
-   
-   .moving-road {
-     width: 190px;
-     height: 5px;
-     background: #252a36;
-     border-radius: 4px;
-     position: relative;
-     overflow: hidden;
-     margin-top: 5px;
-   }
-   .road-line {
-     position: absolute;
-     top: 1px;
-     left: 0;
-     width: 100%;
-     height: 2px;
-     background: repeating-linear-gradient(90deg, #ff5c35 0, #ff5c35 15px, transparent 15px, transparent 30px);
-     animation: roadMove 0.45s linear infinite;
-   }
-   @keyframes roadMove {
-     from { transform: translateX(0); }
-     to { transform: translateX(-30px); }
-   }
-   
-   .splash-title {
-     font-family: "Space Grotesk", sans-serif;
-     font-weight: 700;
-     font-size: 28px;
-     letter-spacing: -1px;
-     color: #ffffff;
-     margin-top: 6px;
-   }
-   .splash-title span { color: var(--primary); }
-   .splash-tagline {
-     color: var(--text-muted);
-     font-size: 13px;
-     margin: 3px 0 18px;
-   }
-   
-   .progress-container { width: 100%; margin-bottom: 20px; }
-   .progress-bar-track {
-     width: 100%;
-     height: 6px;
-     background: rgba(255, 255, 255, 0.08);
-     border-radius: 99px;
-     overflow: hidden;
-     border: 1px solid var(--border);
-   }
-   .progress-bar-fill {
-     height: 100%;
-     width: 0%;
-     background: linear-gradient(90deg, var(--primary), var(--primary-2));
-     border-radius: 99px;
-     box-shadow: 0 0 12px var(--primary-glow);
-     transition: width 0.08s linear;
-   }
-   .progress-text-row {
-     display: flex;
-     justify-content: space-between;
-     align-items: center;
-     margin-top: 7px;
-     font-size: 12px;
-   }
-   .status-lbl { color: var(--text-muted); }
-   .progress-num {
-     font-family: "Space Grotesk", sans-serif;
-     color: var(--primary-2);
-     font-weight: 800;
-   }
-   
-   .splash-developer-badge {
-     display: inline-flex;
-     align-items: center;
-     gap: 7px;
-     background: rgba(255, 255, 255, 0.04);
-     border: 1px solid var(--border);
-     padding: 7px 15px;
-     border-radius: 999px;
-     font-size: 12px;
-     color: var(--text-soft);
-   }
-   .splash-developer-badge strong { color: var(--primary-2); }
-   
-   /* =========================================================
-      TOP NAVBAR (ZERO OVERFLOW)
-      ========================================================= */
-   
-   .topbar {
-     height: 68px;
-     width: 100%;
-     max-width: 100vw;
-     position: sticky;
-     top: 0;
-     z-index: 100;
-     display: flex;
-     align-items: center;
-     justify-content: space-between;
-     padding: 0 24px;
-     background: rgba(5, 6, 9, 0.85);
-     backdrop-filter: blur(18px);
-     -webkit-backdrop-filter: blur(18px);
-     border-bottom: 1px solid var(--border);
-     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03);
-   }
-   
-   .brand-wrap {
-     display: flex;
-     align-items: center;
-     gap: 10px;
-     min-width: 0;
-   }
-   .brand-badge {
-     width: 38px;
-     height: 38px;
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     font-size: 18px;
-     border-radius: 11px;
-     background: rgba(255, 92, 53, 0.12);
-     border: 1px solid var(--border);
-     flex-shrink: 0;
-   }
-   .brand {
-     font-family: "Space Grotesk", sans-serif;
-     font-weight: 700;
-     font-size: 20px;
-     letter-spacing: -0.8px;
-     color: var(--text);
-     white-space: nowrap;
-   }
-   .brand span { color: var(--primary); }
-   
-   .top-actions {
-     display: flex;
-     align-items: center;
-     gap: 8px;
-     flex-shrink: 0;
-   }
-   
-   /* Cheyyar Hub Founder Badge Button */
-   .founder-btn {
-     display: inline-flex;
-     align-items: center;
-     gap: 6px;
-     height: 38px;
-     padding: 0 13px;
-     border: 1px solid rgba(255, 92, 53, 0.4);
-     border-radius: 11px;
-     background: rgba(255, 92, 53, 0.08);
-     color: #ffffff;
-     font-size: 12.5px;
-     font-weight: 700;
-     cursor: pointer;
-     white-space: nowrap;
-     transition: all 0.22s var(--ease);
-   }
-   .founder-btn:hover {
-     background: rgba(255, 92, 53, 0.18);
-     border-color: var(--primary);
-     transform: translateY(-1px);
-   }
-   .founder-btn-icon { color: var(--primary); font-size: 13px; }
-   .founder-btn strong { color: var(--primary-2); }
-   
-   .nav-pill-btn {
-     display: inline-flex;
-     align-items: center;
-     gap: 6px;
-     height: 38px;
-     padding: 0 12px;
-     border: 1px solid var(--border);
-     border-radius: 11px;
-     background: var(--card);
-     color: var(--text-soft);
-     font-size: 12.5px;
-     font-weight: 700;
-     cursor: pointer;
-     transition: 0.2s;
-   }
-   .nav-pill-btn:hover {
-     color: #fff;
-     border-color: rgba(255, 92, 53, 0.35);
-   }
-   
-   .icon-circle-btn {
-     width: 38px;
-     height: 38px;
-     border-radius: 11px;
-     border: 1px solid var(--border);
-     background: var(--card);
-     color: var(--text);
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     cursor: pointer;
-   }
-   
-   /* =========================================================
-      MAIN LAYOUT & CARDS (ZERO OVERFLOW)
-      ========================================================= */
-   
-   .layout-wrap {
-     width: min(1320px, calc(100vw - 32px));
-     max-width: 100vw;
-     margin: 0 auto;
-     padding: 24px 0 80px;
-     display: flex;
-     flex-direction: column;
-     gap: 22px;
-   }
-   
-   /* Hero & 3D Terminal Grid */
-   .hero-3d-grid {
-     display: grid;
-     grid-template-columns: 1.15fr 1fr;
-     gap: 18px;
-     width: 100%;
-   }
-   @media (max-width: 960px) {
-     .hero-3d-grid { grid-template-columns: 1fr; }
-   }
-   
-   .hero-card {
-     background: linear-gradient(180deg, var(--card-2) 0%, var(--card) 100%);
-     border: 1px solid var(--border);
-     border-radius: var(--radius);
-     padding: 30px 26px;
-     display: flex;
-     flex-direction: column;
-     justify-content: space-between;
-     gap: 16px;
-     box-shadow: var(--shadow-soft), var(--inner-highlight);
-   }
-   
-   .live-pill {
-     align-self: flex-start;
-     display: inline-flex;
-     align-items: center;
-     gap: 7px;
-     padding: 4px 11px;
-     border-radius: 999px;
-     border: 1px solid rgba(47, 214, 143, 0.25);
-     background: rgba(47, 214, 143, 0.08);
-     color: var(--green);
-     font-size: 11px;
-     font-weight: 700;
-   }
-   .live-dot {
-     width: 7px;
-     height: 7px;
-     border-radius: 50%;
-     background: var(--green);
-     box-shadow: 0 0 8px var(--green);
-   }
-   
-   .hero-title {
-     font-family: "Space Grotesk", sans-serif;
-     font-size: clamp(24px, 3.4vw, 34px);
-     font-weight: 700;
-     letter-spacing: -1px;
-     line-height: 1.22;
-   }
-   .hero-desc {
-     color: var(--text-soft);
-     font-size: 14px;
-     line-height: 1.6;
-   }
-   
-   .primary {
-     position: relative;
-     overflow: hidden;
-     border: 0;
-     background: linear-gradient(135deg, var(--primary), var(--primary-2));
-     color: white;
-     padding: 12px 20px;
-     border-radius: 12px;
-     font-weight: 700;
-     cursor: pointer;
-     display: inline-flex;
-     align-items: center;
-     gap: 8px;
-     box-shadow: 0 10px 28px rgba(255, 92, 53, 0.22);
-   }
-   .next-bus-box {
-     min-height: 22px;
-     font-size: 13.5px;
-     font-weight: 700;
-     color: var(--primary-2);
-   }
-   
-   .stats-panel {
-     display: flex;
-     align-items: center;
-     background: var(--card-3);
-     border: 1px solid var(--border);
-     border-radius: var(--radius-small);
-     padding: 12px 18px;
-   }
-   .stat-col { flex: 1; text-align: center; }
-   .stat-col strong {
-     display: block;
-     font-size: 20px;
-     font-family: "Space Grotesk", sans-serif;
-     font-weight: 700;
-   }
-   .stat-col span {
-     font-size: 10.5px;
-     color: var(--text-muted);
-     font-weight: 600;
-     text-transform: uppercase;
-   }
-   .stat-sep { width: 1px; height: 30px; background: var(--border); }
-   
-   /* 3D Canvas Stage */
-   .stage-container {
-     background: linear-gradient(180deg, var(--card-2) 0%, var(--card) 100%);
-     border: 1px solid var(--border);
-     border-radius: var(--radius);
-     overflow: hidden;
-     display: flex;
-     flex-direction: column;
-     min-height: 330px;
-     width: 100%;
-   }
-   .stage-topbar {
-     padding: 12px 16px;
-     border-bottom: 1px solid var(--border);
-     display: flex;
-     justify-content: space-between;
-     align-items: center;
-   }
-   .stage-tag {
-     font-family: "Space Grotesk", sans-serif;
-     font-size: 11px;
-     font-weight: 800;
-     color: var(--primary);
-     letter-spacing: 0.8px;
-     text-transform: uppercase;
-   }
-   .stage-hint-text { font-size: 11.5px; color: var(--text-muted); }
-   
-   .stage {
-     flex: 1;
-     width: 100%;
-     max-width: 100%;
-     height: 100%;
-     min-height: 270px;
-     position: relative;
-     touch-action: pan-y;
-     cursor: grab;
-     overflow: hidden;
-     outline: none;
-   }
-   .stage:active { cursor: grabbing; }
-   .stage canvas {
-     width: 100% !important;
-     max-width: 100% !important;
-     height: 100% !important;
-     display: block;
-     opacity: 0;
-     transform: scale(0.98);
-     transition: opacity 0.8s var(--ease);
-   }
-   .stage.ready canvas { opacity: 1; transform: none; }
-   .stage.ready .stage-loading,
-   #stage.ready .stage-loading { display: none !important; }
-   
-   .stage-loading {
-     position: absolute;
-     inset: 0;
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     color: var(--text-muted);
-     font-size: 13.5px;
-     font-weight: 600;
-     background: var(--card);
-   }
-   
-   /* =========================================================
-      SEARCH PANEL (FROM & TO)
-      ========================================================= */
-   
-   .search-panel {
-     background: linear-gradient(180deg, var(--card-2), var(--card));
-     border: 1px solid var(--border);
-     border-radius: var(--radius);
-     padding: 22px;
-     display: flex;
-     flex-direction: column;
-     gap: 15px;
-     width: 100%;
-   }
-   
-   .search-grid {
-     display: grid;
-     grid-template-columns: 1fr auto 1fr 1.15fr;
-     align-items: flex-end;
-     gap: 12px;
-     width: 100%;
-   }
-   
-   .field-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-   .field-label {
-     font-size: 11.5px;
-     font-weight: 700;
-     color: var(--text-soft);
-     display: flex;
-     align-items: center;
-     gap: 6px;
-   }
-   .dot-icon { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-   .dot-icon.green { background: var(--green); }
-   .dot-icon.red { background: var(--danger); }
-   .dot-icon.purple { background: var(--purple); }
-   
-   .input-box { position: relative; display: flex; align-items: center; width: 100%; }
-   .input-box input {
-     width: 100%;
-     background: rgba(255, 255, 255, 0.025);
-     border: 1px solid var(--border);
-     border-radius: 12px;
-     padding: 12px 34px 12px 14px;
-     color: white;
-     font-family: inherit;
-     font-size: 14px;
-     font-weight: 600;
-     outline: none;
-     transition: border-color 0.2s, box-shadow 0.2s;
-   }
-   .input-box input:focus {
-     border-color: rgba(255, 92, 53, 0.6);
-     box-shadow: 0 0 0 3px var(--primary-glow);
-   }
-   .btn-clear-input {
-     position: absolute;
-     right: 10px;
-     background: transparent;
-     border: none;
-     color: var(--text-muted);
-     cursor: pointer;
-     font-size: 12px;
-     display: none;
-   }
-   .input-box input:not(:placeholder-shown) + .btn-clear-input { display: block; }
-   
-   .swap-btn {
-     width: 44px;
-     height: 44px;
-     border-radius: 11px;
-     background: var(--card-3);
-     border: 1px solid var(--border);
-     color: var(--primary-2);
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     font-size: 18px;
-     cursor: pointer;
-     flex-shrink: 0;
-     transition: transform 0.25s ease;
-   }
-   .swap-btn:hover {
-     background: var(--primary);
-     color: #fff;
-     transform: rotate(180deg);
-   }
-   
-   /* Chips & Toggle Strip */
-   .chips-strip {
-     display: flex;
-     align-items: center;
-     flex-wrap: wrap;
-     gap: 10px;
-     padding-top: 8px;
-     border-top: 1px solid var(--border-hairline);
-     width: 100%;
-   }
-   
-   .time-filter-toggle { display: flex; align-items: center; }
-   .switch-label {
-     display: inline-flex;
-     align-items: center;
-     gap: 6px;
-     cursor: pointer;
-     font-size: 12px;
-     font-weight: 700;
-     color: var(--primary-2);
-     user-select: none;
-     background: rgba(255, 92, 53, 0.08);
-     border: 1px solid rgba(255, 92, 53, 0.25);
-     padding: 5px 12px;
-     border-radius: 999px;
-   }
-   .switch-label input { accent-color: var(--primary); }
-   
-   .chips-row { display: flex; flex-wrap: wrap; gap: 7px; }
-   .chip-btn {
-     background: var(--card-3);
-     border: 1px solid var(--border);
-     color: var(--text-soft);
-     font-size: 11.5px;
-     font-weight: 600;
-     padding: 5px 12px;
-     border-radius: 999px;
-     cursor: pointer;
-     transition: 0.2s;
-   }
-   .chip-btn:hover {
-     background: rgba(255, 92, 53, 0.12);
-     border-color: var(--primary);
-     color: var(--primary);
-   }
-   .chip-btn.reset { color: #ff7b8e; border-color: rgba(255, 77, 103, 0.25); }
-   
-   /* =========================================================
-      ROUTES TABS SLIDER
-      ========================================================= */
-   
-   .routes-section { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-   .routes-header { display: flex; justify-content: space-between; align-items: center; }
-   .routes-title {
-     font-family: "Space Grotesk", sans-serif;
-     font-size: 18px;
-     font-weight: 700;
-   }
-   .route-count-badge {
-     font-size: 11.5px;
-     font-weight: 800;
-     color: var(--primary);
-     background: rgba(255, 92, 53, 0.12);
-     border: 1px solid rgba(255, 92, 53, 0.25);
-     padding: 3px 10px;
-     border-radius: 999px;
-   }
-   
-   .tabs-slider {
-     display: flex;
-     gap: 8px;
-     overflow-x: auto;
-     padding: 2px 2px 8px;
-     scrollbar-width: thin;
-     width: 100%;
-   }
-   .tabs-slider::-webkit-scrollbar { height: 4px; }
-   .tabs-slider::-webkit-scrollbar-thumb { background: #292d35; border-radius: 10px; }
-   
-   .tab {
-     flex-shrink: 0;
-     background: var(--card);
-     border: 1px solid var(--border);
-     border-radius: 12px;
-     padding: 9px 15px;
-     color: var(--text-soft);
-     font-family: inherit;
-     font-weight: 700;
-     font-size: 13px;
-     cursor: pointer;
-     display: flex;
-     flex-direction: column;
-     gap: 2px;
-   }
-   .tab small { font-size: 10.5px; color: var(--text-muted); font-weight: 500; }
-   .tab[aria-selected="true"] {
-     background: linear-gradient(135deg, rgba(255, 92, 53, 0.16), rgba(255, 92, 53, 0.04));
-     border-color: var(--primary);
-     color: var(--primary);
-   }
-   
-   /* =========================================================
-      DESKTOP TIMETABLE (TABLE VIEW)
-      ========================================================= */
-   
-   .timetable-section { width: 100%; }
-   .table-card {
-     background: linear-gradient(180deg, var(--card-2) 0%, var(--card) 100%);
-     border: 1px solid var(--border);
-     border-radius: var(--radius);
-     overflow: hidden;
-     box-shadow: var(--shadow-soft);
-     width: 100%;
-   }
-   .table-scroll { width: 100%; overflow-x: auto; }
-   
-   .timetable {
-     width: 100%;
-     border-collapse: collapse;
-     text-align: left;
-   }
-   .timetable thead {
-     background: var(--card-3);
-     border-bottom: 2px solid var(--border);
-   }
-   .timetable th {
-     padding: 14px 16px;
-     font-size: 11px;
-     font-weight: 800;
-     color: var(--text-muted);
-     text-transform: uppercase;
-     letter-spacing: 0.6px;
-   }
-   .timetable td {
-     padding: 14px 16px;
-     font-size: 13.5px;
-     border-bottom: 1px solid var(--border);
-     color: var(--text);
-   }
-   .timetable tbody tr { cursor: pointer; }
-   .timetable tbody tr:hover td { background: rgba(255, 92, 53, 0.04); }
-   .timetable tbody tr.active td { background: rgba(255, 92, 53, 0.12); }
-   .timetable tbody tr.next td { border-left: 4px solid var(--primary); }
-   
-   .td-time {
-     font-family: "Space Grotesk", monospace, sans-serif;
-     font-weight: 700;
-     color: #38bdf8;
-     font-size: 14.5px;
-   }
-   .td-bus { font-weight: 700; color: var(--text); }
-   .td-from { color: var(--text-soft); }
-   .td-dest { font-weight: 600; color: var(--text); }
-   .td-plat { font-weight: 800; color: var(--primary); }
-   .td-action { text-align: right; }
-   
-   .chk {
-     background: rgba(255, 200, 87, 0.12);
-     color: var(--yellow);
-     font-size: 10.5px;
-     padding: 2px 6px;
-     border-radius: 4px;
-     margin-left: 6px;
-     font-weight: 700;
-   }
-   .empty-cell {
-     text-align: center;
-     padding: 44px 20px !important;
-     color: var(--text-muted);
-     font-size: 14px;
-   }
-   
-   /* Live Countdown Badges */
-   .countdown-badge {
-     display: inline-flex;
-     align-items: center;
-     font-size: 10.5px;
-     font-weight: 750;
-     padding: 2.5px 7.5px;
-     border-radius: 999px;
-     margin-left: 6px;
-     white-space: nowrap;
-   }
-   .countdown-badge.urgent {
-     background: rgba(255, 92, 53, 0.16);
-     border: 1px solid rgba(255, 92, 53, 0.45);
-     color: #ff6c47;
-   }
-   .countdown-badge.soon {
-     background: rgba(47, 214, 143, 0.14);
-     border: 1px solid rgba(47, 214, 143, 0.35);
-     color: #2fd68f;
-   }
-   .countdown-badge.upcoming {
-     background: rgba(56, 189, 248, 0.12);
-     border: 1px solid rgba(56, 189, 248, 0.28);
-     color: #38bdf8;
-   }
-   .countdown-badge.departed {
-     background: rgba(255, 255, 255, 0.05);
-     border: 1px solid var(--border);
-     color: var(--text-muted);
-   }
-   
-   /* WhatsApp Share Button */
-   .btn-whatsapp-share {
-     background: rgba(37, 211, 102, 0.1);
-     border: 1px solid rgba(37, 211, 102, 0.25);
-     color: #25d366;
-     width: 30px;
-     height: 30px;
-     border-radius: 9px;
-     display: inline-flex;
-     align-items: center;
-     justify-content: center;
-     cursor: pointer;
-     transition: all 0.2s ease;
-   }
-   .btn-whatsapp-share:hover {
-     background: #25d366;
-     color: #fff;
-     transform: scale(1.08);
-   }
-   .btn-whatsapp-share svg { width: 15px; height: 15px; fill: currentColor; }
-   
-   /* =========================================================
-      FOOTER & MODALS
-      ========================================================= */
-   
-   .footer-wrap {
-     text-align: center;
-     padding: 20px 0 10px;
-     border-top: 1px solid var(--border);
-     color: var(--text-muted);
-     font-size: 12.5px;
-   }
-   .footer-credit {
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     gap: 10px;
-     flex-wrap: wrap;
-     margin-top: 8px;
-   }
-   .dev-pill {
-     background: rgba(255, 92, 53, 0.1);
-     border: 1px solid rgba(255, 92, 53, 0.25);
-     color: var(--text-soft);
-     padding: 3px 10px;
-     border-radius: 999px;
-     font-size: 11.5px;
-   }
-   .dev-pill strong { color: var(--primary); }
-   
-   /* Developer Modal */
-   .modal-backdrop {
-     position: fixed;
-     inset: 0;
-     z-index: 10000;
-     background: rgba(3, 5, 8, 0.78);
-     backdrop-filter: blur(10px);
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     padding: 16px;
-   }
-   .founder-modal {
-     width: min(420px, 100%);
-     background: linear-gradient(180deg, #171b24 0%, #0d1017 100%);
-     border: 1px solid rgba(255, 255, 255, 0.12);
-     border-radius: 22px;
-     padding: 24px;
-     box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
-   }
-   .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-   .founder-icon {
-     width: 44px;
-     height: 44px;
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     border-radius: 12px;
-     background: rgba(255, 92, 53, 0.12);
-     color: var(--primary);
-     font-size: 22px;
-     border: 1px solid rgba(255, 92, 53, 0.25);
-   }
-   .modal-close-btn {
-     background: rgba(255, 255, 255, 0.05);
-     border: 1px solid var(--border);
-     color: var(--text-muted);
-     width: 34px;
-     height: 34px;
-     border-radius: 10px;
-     cursor: pointer;
-     font-size: 14px;
-   }
-   .dev-eyebrow {
-     display: inline-block;
-     font-size: 9.5px;
-     font-weight: 800;
-     letter-spacing: 1.2px;
-     color: var(--primary);
-     margin-bottom: 4px;
-   }
-   .dev-name {
-     font-family: "Space Grotesk", sans-serif;
-     font-size: 20px;
-     font-weight: 700;
-     color: var(--text);
-     margin: 0 0 6px;
-   }
-   .dev-bio {
-     color: var(--text-soft);
-     font-size: 13px;
-     line-height: 1.5;
-     margin-bottom: 16px;
-   }
-   .founder-details-box { display: flex; flex-direction: column; gap: 7px; margin-bottom: 20px; }
-   .detail-row {
-     display: flex;
-     justify-content: space-between;
-     padding: 9px 12px;
-     background: rgba(255, 255, 255, 0.03);
-     border: 1px solid var(--border);
-     border-radius: 11px;
-     font-size: 12px;
-   }
-   .detail-row span { color: var(--text-muted); }
-   .detail-row strong { color: var(--text); }
-   .primary.full { width: 100%; justify-content: center; }
-   
-   /* =========================================================
-      100% FLUID RESPONSIVE ENGINE FOR MOBILE (ZERO OVERFLOW, ZERO LAG)
-      ========================================================= */
-   
-   @media (max-width: 768px) {
-     /* Eliminate heavy blurs on mobile to free up GPU & eliminate scroll lag */
-     .topbar, .hero-card, .search-panel, .stage-container, .timetable tbody tr {
-       backdrop-filter: none !important;
-       -webkit-backdrop-filter: none !important;
-     }
-   
-     .layout-wrap {
-       width: 100% !important;
-       max-width: 100vw !important;
-       padding: 10px 10px 70px !important;
-       gap: 14px !important;
-     }
-   
-     /* Top Navbar on Mobile */
-     .topbar {
-       width: 100% !important;
-       max-width: 100vw !important;
-       padding: 0 10px !important;
-       height: 58px !important;
-     }
-     .brand { font-size: 17px !important; }
-     .brand-badge { width: 32px !important; height: 32px !important; font-size: 16px !important; }
-   
-   /* Mobile-il Dev by Denesh button neat icon-badge-aaga maarividum (Zero merge/overlap) */
-  .founder-btn {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
-    padding: 0 !important;
-    justify-content: center !important;
-    border-radius: 10px !important;
-    font-size: 14px !important;
-    flex-shrink: 0 !important;
-  }
-  .founder-btn-text {
-    display: none !important; /* Mobile-il text maraindhu, ⚡ icon mattum neat-aa theriyum */
-  }
-  .founder-btn-icon {
-    font-size: 15px !important;
-    margin: 0 !important;
-  }
-     .nav-pill-btn {
-       height: 32px !important;
-       padding: 0 8px !important;
-       font-size: 11px !important;
-     }
-     .icon-circle-btn {
-       width: 32px !important;
-       height: 32px !important;
-       font-size: 12px !important;
-     }
-   
-     /* Hero & 3D Stage on Mobile */
-     .hero-card {
-       padding: 18px 14px !important;
-       border-radius: 16px !important;
-       gap: 12px !important;
-     }
-     .hero-title { font-size: 21px !important; letter-spacing: -0.5px !important; }
-     .hero-desc { font-size: 12.5px !important; line-height: 1.5 !important; }
-   
-     .stats-panel { padding: 9px 10px !important; }
-     .stat-col strong { font-size: 17px !important; }
-     .stat-col span { font-size: 9.5px !important; }
-   
-     .stage-container {
-       min-height: 250px !important;
-       height: 260px !important;
-       border-radius: 16px !important;
-     }
-     .stage { min-height: 210px !important; }
-   
-     /* Search Panel on Mobile */
-     .search-panel {
-       padding: 15px 12px !important;
-       border-radius: 16px !important;
-       gap: 12px !important;
-     }
-     .search-grid {
-       grid-template-columns: 1fr !important;
-       gap: 9px !important;
-     }
-     .input-box input {
-       font-size: 13px !important;
-       padding: 10px 30px 10px 11px !important;
-     }
-     .swap-btn {
-       align-self: center !important;
-       transform: rotate(90deg) !important;
-       width: 36px !important;
-       height: 36px !important;
-       font-size: 15px !important;
-       margin: -3px 0 !important;
-     }
-   
-     /* Quick Chips */
-     .chips-strip { gap: 6px !important; }
-     .switch-label { font-size: 11px !important; padding: 4px 10px !important; }
-     .chips-row { gap: 5px !important; }
-     .chip-btn { font-size: 10.5px !important; padding: 4px 9px !important; }
-   
-     /* Tabs Slider */
-     .routes-title { font-size: 15px !important; }
-     .tab { padding: 7px 12px !important; font-size: 12px !important; }
-   
-     /* =========================================================
-        TIMETABLE: COMPLETE MOBILE ADAPTIVE TICKET CARD VIEW
-        (Guarantees 100% Fit On Any Mobile Display Without Tables Breaking)
-        ========================================================= */
-     .table-card {
-       background: transparent !important;
-       border: none !important;
-       box-shadow: none !important;
-       padding: 0 !important;
-     }
-     .table-scroll { overflow: visible !important; }
-   
-     .timetable {
-       display: block !important;
-       width: 100% !important;
-       max-width: 100% !important;
-     }
-     .timetable thead { display: none !important; }
-     .timetable tbody {
-       display: flex !important;
-       flex-direction: column !important;
-       gap: 10px !important;
-       width: 100% !important;
-     }
-   
-     /* Transit Ticket Card */
-     .timetable tbody tr {
-       display: flex !important;
-       flex-direction: column !important;
-       width: 100% !important;
-       background: linear-gradient(180deg, var(--card-2) 0%, var(--card) 100%) !important;
-       border: 1px solid var(--border) !important;
-       border-radius: 15px !important;
-       padding: 13px 14px !important;
-       gap: 7px !important;
-       box-shadow: var(--shadow-soft) !important;
-       transform: translateZ(0);
-       will-change: transform;
-     }
-   
-     .timetable td {
-       display: block !important;
-       padding: 0 !important;
-       border: none !important;
-       width: 100% !important;
-     }
-   
-     .timetable td.td-time {
-       display: flex !important;
-       align-items: center !important;
-       justify-content: space-between !important;
-       font-size: 14.5px !important;
-     }
-     .mobile-time-group {
-       display: flex !important;
-       align-items: center !important;
-       gap: 6px !important;
-       flex-wrap: wrap !important;
-     }
-   
-     .timetable td.td-bus {
-       font-size: 14px !important;
-       font-weight: 700 !important;
-       color: var(--text) !important;
-     }
-   
-     .timetable td.td-from {
-       font-size: 12px !important;
-       color: var(--text-soft) !important;
-       display: flex !important;
-       gap: 4px !important;
-     }
-     .timetable td.td-from::before {
-       content: "From: " !important;
-       color: var(--text-muted) !important;
-       font-weight: 700 !important;
-       font-size: 10.5px !important;
-       text-transform: uppercase !important;
-     }
-   
-     .timetable td.td-dest {
-       font-size: 13px !important;
-       font-weight: 700 !important;
-       color: var(--primary-2) !important;
-       display: flex !important;
-       gap: 4px !important;
-     }
-     .timetable td.td-dest::before {
-       content: "To: " !important;
-       color: var(--text-muted) !important;
-       font-weight: 700 !important;
-       font-size: 10.5px !important;
-       text-transform: uppercase !important;
-     }
-   
-     .timetable td.td-plat {
-       display: inline-block !important;
-       width: fit-content !important;
-       font-size: 10px !important;
-       padding: 2px 6px !important;
-       border-radius: 5px !important;
-       background: rgba(255, 92, 53, 0.12) !important;
-       color: var(--primary) !important;
-     }
-   
-     .timetable td.td-action {
-       display: flex !important;
-       justify-content: flex-end !important;
-       width: 100% !important;
-       padding-top: 5px !important;
-       border-top: 1px solid var(--border-hairline) !important;
-     }
-   
-     .btn-whatsapp-share {
-       width: 28px !important;
-       height: 28px !important;
-     }
-   }
-   /* Zero-overflow fix for Infinix & small screens */
-html, body {
-  width: 100% !important;
-  max-width: 100vw !important;
-  overflow-x: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
+   14. STRICT APK-ONLY IN-APP UPDATE CHECK
+   ========================================================= */
+
+/* =========================================================
+   IN-APP UPDATE ENGINE (WORKS ON BOTH OLD & NEW APK)
+   ========================================================= */
+
+// Old APK, New APK, matrum Mobile Browser-ai sariyaa identify seiyum function
+function isInsideAnyApk() {
+  const ua = navigator.userAgent || "";
+
+  // 1. New APK check
+  const isNewApk = Boolean(window.AndroidApp) || ua.includes("CheyyarBusAPK");
+
+  // 2. Old APK check (Standard Android WebView-il '; wv' alladhu 'Version/4.0' irukkum)
+  const isAndroid = /android/i.test(ua);
+  const isWebView = ua.includes("; wv") || (isAndroid && ua.includes("Version/"));
+
+  return isNewApk || isWebView;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box !important;
-}
+const CURRENT_APP_VERSION = 2; // Pazhaiya APK version code
 
-@media (max-width: 768px) {
-  .layout-wrap {
-    width: 100% !important;
-    max-width: 100vw !important;
-    padding: 8px !important;
-    margin: 0 !important;
-    overflow-x: hidden !important;
+async function checkForAppUpdate() {
+  // Website alladhu PC Chrome browser-il open seidhaal ingeye stop aagividum
+  if (!isInsideAnyApk()) {
+    return;
   }
 
-  .topbar {
-    width: 100% !important;
-    max-width: 100vw !important;
-    padding: 0 8px !important;
-    height: 56px !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-  }
+  try {
+    const res = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return;
 
-  /* Dev button neat square icon-aa maaridum, text varaadhu */
-  .founder-btn {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    padding: 0 !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    flex-shrink: 0 !important;
-  }
+    const data = await res.json();
 
-  .founder-btn-text {
-    display: none !important;
-  }
-
-  .founder-btn-icon {
-    font-size: 14px !important;
-    margin: 0 !important;
-  }
-
-  .timetable {
-    width: 100% !important;
-    display: block !important;
-  }
-
-  .timetable thead {
-    display: none !important;
-  }
-
-  .timetable tbody {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    width: 100% !important;
-  }
-
-  .timetable tbody tr {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    padding: 12px !important;
-    border-radius: 12px !important;
+    // version.json-il latestVersionCode 2 irundhaal mattum popup varum
+    if (Number(data.latestVersionCode) > CURRENT_APP_VERSION) {
+      showUpdateModal(data);
+    }
+  } catch (err) {
+    console.error("Update check error:", err);
   }
 }
-/* Hide scrollbar everywhere (Chrome, Android WebView, Safari) */
-html, body, * {
-  scrollbar-width: none !important; /* Firefox */
-  -ms-overflow-style: none !important; /* IE & Edge */
+
+function showUpdateModal(data) {
+  // Modal already display aagirundhaa marubadiyum varaadhu
+  if (document.getElementById("update-modal-backdrop")) return;
+
+  const modal = document.createElement("div");
+  modal.id = "update-modal-backdrop";
+  modal.className = "modal-backdrop";
+  modal.style.cssText = "display: flex !important; position: fixed !important; inset: 0 !important; background: rgba(0,0,0,0.85) !important; z-index: 99999999 !important; justify-content: center !important; align-items: center !important; padding: 20px !important;";
+
+  modal.innerHTML = `
+    <div style="background: #141721; border: 1px solid rgba(255, 92, 53, 0.4); border-radius: 20px; padding: 24px; max-width: 320px; width: 100%; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.8);">
+      <div style="font-size: 42px; margin-bottom: 8px;">🚀</div>
+      <h3 style="margin: 0; font-size: 20px; color: #ffffff; font-weight: 800;">New Update Available!</h3>
+      <p style="font-size: 13px; color: #a9aeba; margin: 10px 0 18px; line-height: 1.5;">
+        Version <strong>${data.latestVersionName || "1.1.0"}</strong><br>
+        ${data.releaseNotes || "Performance improvements & new features."}
+      </p>
+      <button type="button" id="btn-update-apk" style="width: 100%; height: 44px; background: linear-gradient(135deg, #ff5c35, #ff7a45); color: #fff; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; font-size: 15px; box-shadow: 0 6px 18px rgba(255, 92, 53, 0.4);">
+        Update Now
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document.getElementById("btn-update-apk").addEventListener("click", () => {
+    // New APK irundhaal Background Download Bridge execute aagum
+    if (window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function") {
+      window.AndroidApp.downloadAndInstallApk(data.apkUrl);
+      modal.remove();
+    } else {
+      // Old APK-il direct download link open aagum
+      window.location.href = data.apkUrl;
+    }
+  });
 }
 
-::-webkit-scrollbar {
-  display: none !important; /* Chrome, Android WebView, Safari */
-  width: 0px !important;
-  height: 0px !important;
-  background: transparent !important;
-}
-/* Disable text selection everywhere (Browser & APK) */
-*, *::before, *::after {
-  -webkit-user-select: none !important; /* Safari, Chrome, Android WebView */
-  -moz-user-select: none !important;    /* Firefox */
-  -ms-user-select: none !important;     /* IE/Edge */
-  user-select: none !important;         /* Standard */
+// App start aagi 1.5 seconds-il check seiyum
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(checkForAppUpdate, 1500);
+});
+/* =========================================================
+   AUTO-SCROLL TO BUS ROUTES SECTION AFTER AI ANSWER
+   ========================================================= */
+
+   function scrollToBusResults() {
+    // Unga HTML-il ulla bus results / timetable container ID
+    const routesSection = document.getElementById("bus-list-container") || 
+                          document.getElementById("routes-section") || 
+                          document.querySelector(".schedule-container") ||
+                          document.querySelector(".bus-results");
   
-  /* Long-press callout menu-vai block panna (iOS & Android) */
-  -webkit-touch-callout: none !important;
+    if (routesSection) {
+      routesSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+  }
   
-  /* Tap highlight blue box-ai disable panna */
-  -webkit-tap-highlight-color: transparent !important;
+  // AI Speech / Query Process mudiyum idathil idhai call seiyavum
+  function handleAssistantResponse(queryText, foundBuses) {
+    // 1. Speak/Display the AI Response
+    // (Unga voice engine pesum line)
+  
+    // 2. Filter / Show buses in the table / list
+    if (typeof renderBusList === "function") {
+      renderBusList(foundBuses);
+    }
+  
+    // 3. User screen direct-aa bus timetable view-kku smooth scroll aagum
+    setTimeout(() => {
+      scrollToBusResults();
+    }, 400);
+  }
+/* =========================================================
+   REAL-TIME VISIT HIT COUNTER (AUTO INCREMENT ON EVERY VISIT)
+   ========================================================= */
+
+/* =========================================================
+   FIRESTORE REAL-TIME ATOMIC VISITOR COUNTER
+   ========================================================= */
+
+// Unga Firebase Project Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCk-YR0KFQzHlFHs36ly4mV9u-S5aiXVwE",
+  authDomain: "cheyyarbus.firebaseapp.com",
+  projectId: "cheyyarbus",
+  storageBucket: "cheyyarbus.firebasestorage.app",
+  messagingSenderId: "593131650414",
+  appId: "1:593131650414:web:61319e188fb60edb94157f"
+};
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
+
+async function updateFirestoreLiveVisits() {
+  const visitEl = document.getElementById("visit-count");
+  if (!visitEl) return;
+
+  const statsDocRef = db.collection("app_stats").doc("visitors");
+
+  try {
+    // 1. Session check: Orey user refresh pannikitte irundha repeat spam aagama irukka
+    const hasVisitedThisSession = sessionStorage.getItem("cb_session_counted");
+
+    if (!hasVisitedThisSession) {
+      // Atomic Increment: Multiple devices ore nerathil open panninaalum race-condition illamal +1 aagum
+      await statsDocRef.update({
+        count: firebase.firestore.FieldValue.increment(1)
+      });
+      sessionStorage.setItem("cb_session_counted", "true");
+    }
+
+    // 2. Real-Time Snapshot Listener: Vera yaaru open panninaalum screen-la number udaney live-aa jump aagum
+    statsDocRef.onSnapshot((doc) => {
+      if (doc.exists) {
+        const liveCount = doc.data().count || 0;
+        visitEl.textContent = Number(liveCount).toLocaleString();
+      }
+    });
+
+  } catch (error) {
+    console.error("Firestore counter error:", error);
+    // Offline alladhu doc illaatha podhu initial set seiyum fallback
+    statsDocRef.set({ count: 1251 }, { merge: true });
+  }
 }
 
-/* Oruvelai input boxes / textarea irundhaa mattum type panna allow panna: */
-input, textarea {
-  -webkit-user-select: auto !important;
-  user-select: auto !important;
-}
-/* Route Notification Badges */
-.bus-name-row {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.route-tag {
-  display: inline-flex;
-  align-items: center;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 6px;
-  width: fit-content;
-  letter-spacing: 0.2px;
-}
-
-/* Regular Arcot Route (Cool Blue / Slate Glow) */
-.route-tag.tag-arcot {
-  background: rgba(56, 189, 248, 0.12);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-}
-
-/* Sivaji Bus Village Route (Warm Amber / Gold Glow) */
-.route-tag.tag-sivaji {
-  background: rgba(251, 191, 36, 0.14);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.4);
-}
-/* Vembakkam Route Tag (Greenish Glow) */
-.route-tag.tag-vembakkam {
-  background: rgba(47, 214, 143, 0.12);
-  color: #2fd68f;
-  border: 1px solid rgba(47, 214, 143, 0.35);
-}
-
-/* Kanchipuram Direct Tag (Purple Glow) */
-.route-tag.tag-kanchi {
-  background: rgba(167, 139, 250, 0.14);
-  color: #a78bfa;
-  border: 1px solid rgba(167, 139, 250, 0.35);
-}
-/* Arani Route Tag (Orange / Peach Accent) */
-.route-tag.tag-arani {
-  background: rgba(249, 115, 22, 0.14);
-  color: #f97316;
-  border: 1px solid rgba(249, 115, 22, 0.35);
-}/* 6. Korukkai Route (கொரக்கை) - Rose / Crimson */
-.route-tag.tag-korkai {
-  background: rgba(244, 63, 94, 0.14);
-  color: #f43f5e;
-  border: 1px solid rgba(244, 63, 94, 0.35);
-}
-/* Thavasi Route Tag - Lime / Green */
-.route-tag.tag-thavasi {
-  background: rgba(132, 204, 22, 0.14);
-  color: #84cc16;
-  border: 1px solid rgba(132, 204, 22, 0.35);
-}
-/* Kalavai Route Tag - Sky Blue / Cyan Accent */
-.route-tag.tag-kalavai {
-  background: rgba(14, 165, 233, 0.14);
-  color: #0ea5e9;
-  border: 1px solid rgba(14, 165, 233, 0.35);
-}
-/* Parasur Route Tag */
-.route-tag.tag-parasur {
-  background: rgba(16, 185, 129, 0.14);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.35);
-}
-
-/* Gingee Route Tag */
-.route-tag.tag-gingee {
-  background: rgba(234, 88, 12, 0.14);
-  color: #ea580c;
-  border: 1px solid rgba(234, 88, 12, 0.35);
-}
-
-/* Puducherry Route Tag */
-.route-tag.tag-puducherry {
-  background: rgba(59, 130, 246, 0.14);
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.35);
-}
-/* Find Next Bus Highlight Animation */
-tr.active-highlight {
-  outline: 2px solid #ff7a45 !important;
-  background: rgba(255, 122, 69, 0.22) !important;
-  transition: all 0.3s ease-in-out;
-}
+// App start aana udan run aagum
+document.addEventListener("DOMContentLoaded", () => {
+  updateFirestoreLiveVisits();
+});
+   
+   setInterval(() => {
+     const now = nowMin();
+     if (activeRow && activeRow.min < now) {
+       const rows = ROUTES[current].rows;
+       const nextBus = rows.find(r => r.min >= now) || rows[0];
+       if (nextBus) {
+         activeRow = nextBus;
+       }
+     }
+     updateAllBusSigns();
+     render();
+   }, 60000);
+   
+   initLoadingScreen();
+   const ok = window.Bus3D ? Bus3D.init(stageEl, DATA.routes, selectRoute) : false;
+   if (ok) {
+     stageEl.classList.add("ready");
+     const loader = stageEl.querySelector(".stage-loading");
+     if (loader) loader.style.display = "none";
+   }
+   
+   const storedLang = localStorage.getItem("cheyyar_bus_lang") || "en";
+   applyLanguage(storedLang);
+   selectRoute(current);

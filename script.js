@@ -4,6 +4,9 @@
    - Universal Intermediate Stop Filtering & Direct Live Badges
    - Real-time Last Bus Alert Integration
    - 3-Clip Natural Voice AI Assistant (.ogg Engine)
+   - Auto-Scroll to Bus Timetable on Voice Query
+   - Firebase Real-Time Live Visits Counter
+   - Seamless In-App Update Engine
    ========================================================= */
 
    const $ = id => document.getElementById(id);
@@ -377,8 +380,8 @@
    const IDS = Object.keys(ROUTES);
    let current = IDS[0];
    
-   $("st-n").textContent = IDS.reduce((n, k) => n + ROUTES[k].rows.length, 0);
-   $("st-r").textContent = IDS.length;
+   if ($("st-n")) $("st-n").textContent = IDS.reduce((n, k) => n + ROUTES[k].rows.length, 0);
+   if ($("st-r")) $("st-r").textContent = IDS.length;
    
    /* =========================================================
       4. SMART AUTOCOMPLETE DROPDOWN (FAIL-SAFE & A-Z ONLY)
@@ -511,7 +514,7 @@
    }
    
    /* =========================================================
-      6. VIRTUAL LIVE TRACKING POPUP MODAL (ACCURATE TIMELINE)
+      6. VIRTUAL LIVE TRACKING POPUP MODAL
       ========================================================= */
    
    function generateLiveTimeline(r) {
@@ -689,9 +692,11 @@
        targetRows = ROUTES[current].rows;
      }
    
-     tabsEl.querySelectorAll(".tab").forEach(b => {
-       b.setAttribute("aria-selected", !isSearchActive && b.dataset.key === current);
-     });
+     if (tabsEl) {
+       tabsEl.querySelectorAll(".tab").forEach(b => {
+         b.setAttribute("aria-selected", !isSearchActive && b.dataset.key === current);
+       });
+     }
    
      let list = targetRows.filter(r => {
        const isSearchingFromCheyyar = qFrom && (qFrom.includes("cheyyar") || qFrom.includes("செய்யாறு"));
@@ -761,7 +766,7 @@
      list.sort((a, b) => a.displayMin - b.displayMin);
    
      const hasPlat = list.some(r => r.platform);
-     $("th-plat").hidden = !hasPlat;
+     if ($("th-plat")) $("th-plat").hidden = !hasPlat;
      rowsEl.innerHTML = "";
    
      if (!list.length) {
@@ -772,7 +777,7 @@
        td.textContent = (window.I18N && I18N[lang]) ? I18N[lang].empty : "No buses found matching criteria.";
        tr.appendChild(td);
        rowsEl.appendChild(tr);
-       countEl.textContent = "0 buses";
+       if (countEl) countEl.textContent = "0 buses";
        updateLastBusBanner();
        return;
      }
@@ -868,7 +873,6 @@
        const tdFrom = document.createElement("td");
        tdFrom.className = "td-from";
        
-       // Intermediate origin check (e.g. Vembakkam)
        if (qFrom && r.isOffset) {
          const cleanFromQuery = qFrom.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
          tdFrom.innerHTML = `<strong>${cleanFromQuery}</strong> <small style="display:block; font-size:10px; color:#838a9c;">(Orig: ${ORIGIN(r)})</small>`;
@@ -923,7 +927,7 @@
    
      rowsEl.appendChild(fragment);
      const countMsg = (window.I18N && I18N[lang] && I18N[lang].count) ? I18N[lang].count(list.length) : " buses";
-     countEl.textContent = list.length + countMsg;
+     if (countEl) countEl.textContent = list.length + countMsg;
    
      if (!activeRow && list.length > 0) {
        activeRow = list[0];
@@ -977,7 +981,7 @@
      searchEl.value = "";
      nextRow = null;
      lastNext = null;
-     msgEl.textContent = "";
+     if (msgEl) msgEl.textContent = "";
    
      const d1 = $("from-dropdown");
      const d2 = $("to-dropdown");
@@ -1000,6 +1004,7 @@
    }
    
    function buildTabs() {
+     if (!tabsEl) return;
      tabsEl.innerHTML = "";
      IDS.forEach(k => {
        const b = document.createElement("button");
@@ -1115,32 +1120,37 @@
    }
    const debouncedRender = debounce(render, 200);
    
-   fromEl.addEventListener("input", debouncedRender);
-   toEl.addEventListener("input", debouncedRender);
-   searchEl.addEventListener("input", debouncedRender);
-   
+   if (fromEl) fromEl.addEventListener("input", debouncedRender);
+   if (toEl) toEl.addEventListener("input", debouncedRender);
+   if (searchEl) searchEl.addEventListener("input", debouncedRender);
    if (upcomingToggle) upcomingToggle.addEventListener("change", render);
    
-   $("clear-from-btn").addEventListener("click", () => { 
-     fromEl.value = ""; 
-     const d = $("from-dropdown");
-     if (d) d.style.display = "none";
-     render(); 
-   });
+   if ($("clear-from-btn")) {
+     $("clear-from-btn").addEventListener("click", () => { 
+       fromEl.value = ""; 
+       const d = $("from-dropdown");
+       if (d) d.style.display = "none";
+       render(); 
+     });
+   }
    
-   $("clear-to-btn").addEventListener("click", () => { 
-     toEl.value = ""; 
-     const d = $("to-dropdown");
-     if (d) d.style.display = "none";
-     render(); 
-   });
+   if ($("clear-to-btn")) {
+     $("clear-to-btn").addEventListener("click", () => { 
+       toEl.value = ""; 
+       const d = $("to-dropdown");
+       if (d) d.style.display = "none";
+       render(); 
+     });
+   }
    
-   swapBtn.addEventListener("click", () => {
-     const tmp = fromEl.value;
-     fromEl.value = toEl.value;
-     toEl.value = tmp;
-     render();
-   });
+   if (swapBtn) {
+     swapBtn.addEventListener("click", () => {
+       const tmp = fromEl.value;
+       fromEl.value = toEl.value;
+       toEl.value = tmp;
+       render();
+     });
+   }
    
    document.querySelectorAll(".chip-btn[data-city]").forEach(chip => {
      chip.addEventListener("click", () => {
@@ -1157,78 +1167,84 @@
      });
    });
    
-   $("clear-all-filters").addEventListener("click", () => {
-     fromEl.value = "";
-     toEl.value = "";
-     searchEl.value = "";
-     const d1 = $("from-dropdown");
-     const d2 = $("to-dropdown");
-     if (d1) d1.style.display = "none";
-     if (d2) d2.style.display = "none";
-     render();
-   });
+   if ($("clear-all-filters")) {
+     $("clear-all-filters").addEventListener("click", () => {
+       fromEl.value = "";
+       toEl.value = "";
+       searchEl.value = "";
+       const d1 = $("from-dropdown");
+       const d2 = $("to-dropdown");
+       if (d1) d1.style.display = "none";
+       if (d2) d2.style.display = "none";
+       render();
+     });
+   }
    
    /* =========================================================
       11. FIND NEXT BUS ACTION
       ========================================================= */
    
-   $("next-btn").addEventListener("click", () => {
-     fromEl.value = "";
-     toEl.value = "";
-     searchEl.value = "";
-   
-     const rows = ROUTES[current].rows;
-     const now = nowMin();
-   
-     let r = rows.find(x => x.min >= now);
-     let isTomorrow = false;
-   
-     if (!r) {
-       r = rows[0];
-       isTomorrow = true;
-     }
-   
-     nextRow = r;
-     lastNext = { r, isTomorrow };
-   
-     render();
-     setActive(r);
-   
-     if (window.Bus3D) {
-       if (Bus3D.setSign) {
-         Bus3D.setSign(current, DEST(r), BUS(r), r.displayTime || r.time);
+   if ($("next-btn")) {
+     $("next-btn").addEventListener("click", () => {
+       fromEl.value = "";
+       toEl.value = "";
+       searchEl.value = "";
+     
+       const rows = ROUTES[current].rows;
+       const now = nowMin();
+     
+       let r = rows.find(x => x.min >= now);
+       let isTomorrow = false;
+     
+       if (!r) {
+         r = rows[0];
+         isTomorrow = true;
        }
-       if (Bus3D.focus) {
-         Bus3D.focus(current);
+     
+       nextRow = r;
+       lastNext = { r, isTomorrow };
+     
+       render();
+       setActive(r);
+     
+       if (window.Bus3D) {
+         if (Bus3D.setSign) {
+           Bus3D.setSign(current, DEST(r), BUS(r), r.displayTime || r.time);
+         }
+         if (Bus3D.focus) {
+           Bus3D.focus(current);
+         }
        }
-     }
-   
-     if (msgEl) {
-       const diff = r.min - now;
-       const timeText = isTomorrow 
-         ? `Tomorrow at ${r.displayTime || r.time}` 
-         : `${r.displayTime || r.time} (${diff > 0 ? 'in ' + diff + ' mins' : 'now'})`;
-   
-       msgEl.innerHTML = `
-         <div style="background: rgba(255, 122, 69, 0.15); border: 1px solid #ff7a45; padding: 10px 14px; border-radius: 8px; margin: 12px 0; color: #ff7a45; font-weight: 600;">
-           ⚡ Next Bus: <strong>${BUS(r)}</strong> to <strong>${DEST(r)}</strong> • Departure: <strong>${timeText}</strong>
-         </div>
-       `;
-     }
-   
-     setTimeout(() => {
-       if (r._el) {
-         r._el.scrollIntoView({ block: "center", behavior: "smooth" });
-         r._el.classList.add("active-highlight");
-         setTimeout(() => r._el.classList.remove("active-highlight"), 2500);
+     
+       if (msgEl) {
+         const diff = r.min - now;
+         const timeText = isTomorrow 
+           ? `Tomorrow at ${r.displayTime || r.time}` 
+           : `${r.displayTime || r.time} (${diff > 0 ? 'in ' + diff + ' mins' : 'now'})`;
+     
+         msgEl.innerHTML = `
+           <div style="background: rgba(255, 122, 69, 0.15); border: 1px solid #ff7a45; padding: 10px 14px; border-radius: 8px; margin: 12px 0; color: #ff7a45; font-weight: 600;">
+             ⚡ Next Bus: <strong>${BUS(r)}</strong> to <strong>${DEST(r)}</strong> • Departure: <strong>${timeText}</strong>
+           </div>
+         `;
        }
-     }, 100);
-   });
+     
+       setTimeout(() => {
+         if (r._el) {
+           r._el.scrollIntoView({ block: "center", behavior: "smooth" });
+           r._el.classList.add("active-highlight");
+           setTimeout(() => r._el.classList.remove("active-highlight"), 2500);
+         }
+       }, 100);
+     });
+   }
    
-   $("theme-btn").addEventListener("click", () => {
-     const root = document.documentElement;
-     root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
-   });
+   if ($("theme-btn")) {
+     $("theme-btn").addEventListener("click", () => {
+       const root = document.documentElement;
+       root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+     });
+   }
    
    const devModal = $("dev-modal");
    const openDevBtn = $("open-dev-modal");
@@ -1241,11 +1257,26 @@
    if (devModal) devModal.addEventListener("click", e => { if (e.target === devModal) devModal.style.display = "none"; });
    
 /* =========================================================
-   12. 3-CLIP SYNCHRONIZED AUDIO & TEXT VOICE ENGINE
-   - Audio 1 (1.ogg) + Text 1 (Greeting)
-   - Audio 2 (2.ogg) + Text 2 (Success)
-   - Audio 3 (3.ogg) + Text 3 (Fallback)
-   * Strict Rule: Audio mudiyura varai adhan text maraiaadhu!
+   12. AUTO-SCROLL TO BUS TIMETABLE SECTION
+   ========================================================= */
+
+function scrollToBusResults() {
+  const tableTarget = document.querySelector(".table-wrap") || 
+                      document.querySelector(".table-container") || 
+                      $("rows") || 
+                      document.querySelector("main") || 
+                      $("tabs");
+
+  if (tableTarget) {
+    tableTarget.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+}
+
+/* =========================================================
+   13. 3-CLIP NATURAL VOICE AI ASSISTANT (MIC STREAM FIX)
    ========================================================= */
 
    const avatarWidget = $("ai-avatar-widget");
@@ -1258,22 +1289,18 @@
    let silenceTimer = null;
    let isPlayingAudio = false;
    
-   // Ungaloda Exact Audio Clips
    const AUDIO_CLIPS = {
      greeting: new Audio("audio/1.ogg"),
      success: new Audio("audio/2.ogg"),
      fallback: new Audio("audio/3.ogg")
    };
    
-   // Strict Playback Controller with Text Binding
    function playAudioWithText(clipKey, textMessage, onFinished) {
-     // Pazhaiya audio irundha stop pannuvom
      if (currentAudio) {
        currentAudio.pause();
        currentAudio.currentTime = 0;
      }
    
-     // Bubble-ai open panni correct text-ai set pannuvom
      if (avatarBubble) avatarBubble.style.display = "block";
      if (avatarText) avatarText.textContent = textMessage;
    
@@ -1296,7 +1323,6 @@
            isPlayingAudio = false;
            currentAudio = null;
            if (avatarWidget) avatarWidget.classList.remove("speaking");
-           // Audio complete aana piragu dhaan next callback trigger aagum
            if (onFinished) onFinished();
          };
        })
@@ -1314,7 +1340,11 @@
        silenceTimer = null;
      }
      if (recognition) {
-       try { recognition.abort(); } catch(e) {}
+       try { 
+         recognition.onend = null;
+         recognition.abort(); 
+       } catch(e) {}
+       recognition = null;
      }
      if (avatarWidget) avatarWidget.classList.remove("listening");
    }
@@ -1322,12 +1352,10 @@
    function handleFallback() {
      stopListening();
    
-     // AUDIO 3 + TEXT 3: Fallback Audio mudiyum varai Text 3 mattume screen-la irukkum
      playAudioWithText(
        "fallback",
        "ஊரு நேம் சரியா சொல்லுங்க, எனக்கு கேக்கல!",
        () => {
-         // Audio 3 mudindhavudan 2.5s kazhithu bubble close aagum
          setTimeout(() => {
            if (!isPlayingAudio && avatarBubble) {
              avatarBubble.style.display = "none";
@@ -1338,14 +1366,12 @@
    }
    
    function startVoiceAssistant() {
-     if (isPlayingAudio) return; // Oru audio play aagi irundhaa pudhusa start aagadhu
+     if (isPlayingAudio) return;
    
-     // 1. AUDIO 1 + TEXT 1: Greeting mudiyum varaikkum Text 1 mattum dhaan screen-la irukkum
      playAudioWithText(
        "greeting",
        "வணக்கம்! இது உங்க செய்யார் பஸ் ஆப். உங்களுக்கு எந்த ஊருக்கு பஸ் பாக்கணும்?",
        () => {
-         // AUDIO 1 FULL-AA MUDINDHA PINBU MATTUME MIC OPEN AAGUM
          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
          if (!SpeechRecognition) {
            if (avatarText) avatarText.textContent = "Browser-la mic support illa.";
@@ -1357,19 +1383,18 @@
    
          recognition = new SpeechRecognition();
          recognition.lang = "ta-IN";
+         recognition.continuous = false;
          recognition.interimResults = false;
    
          recognition.onstart = () => {
            if (avatarWidget) avatarWidget.classList.add("listening");
-           // Audio 1 mudinja piragu dhaan mic text maaranum
            if (avatarText) avatarText.textContent = "கேட்கிறது... பேசுங்கள் (5s)...";
    
-           // 5s silence wait timer
            silenceTimer = setTimeout(() => {
              if (!hasCapturedSpeech && !isPlayingAudio) {
                handleFallback();
              }
-           }, 5000);
+           }, 5500);
          };
    
          recognition.onresult = (e) => {
@@ -1399,12 +1424,15 @@
              searchEl.value = "";
              render();
    
-             // AUDIO 2 + TEXT 2: Success Audio mudiyum varaikkum Text 2 mattume screen-la irukkum
+             // Auto scroll to bus timings list immediately
+             setTimeout(() => {
+               scrollToBusResults();
+             }, 300);
+   
              playAudioWithText(
                "success",
                `நீங்க கேட்ட ${matchedCity} பஸ் டீடைல்ஸ் இதோ உங்களுக்காக!`,
                () => {
-                 // Audio 2 mudindhadhum 3s kazhithu bubble close aagum
                  setTimeout(() => {
                    if (!isPlayingAudio && avatarBubble) {
                      avatarBubble.style.display = "none";
@@ -1418,14 +1446,15 @@
          };
    
          recognition.onerror = (e) => {
-           if (e.error === "no-speech" && !hasCapturedSpeech) return;
+           if (e.error === "no-speech") {
+             if (!hasCapturedSpeech && !isPlayingAudio) handleFallback();
+             return;
+           }
            if (!hasCapturedSpeech && !isPlayingAudio) handleFallback();
          };
    
          recognition.onend = () => {
-           if (!hasCapturedSpeech && silenceTimer && !isPlayingAudio) {
-             try { recognition.start(); } catch(err) {}
-           }
+           if (avatarWidget) avatarWidget.classList.remove("listening");
          };
    
          try {
@@ -1436,7 +1465,7 @@
        }
      );
    }
-   // 3. Ultra-Smooth Drag & Drop Anywhere on Screen
+
    function makeWidgetDraggable(el) {
      if (!el) return;
      let isDragging = false;
@@ -1444,7 +1473,6 @@
      let hasMoved = false;
    
      function onPointerDown(e) {
-       // Only drag with primary touch/click
        if (e.button !== undefined && e.button !== 0) return;
        isDragging = true;
        hasMoved = false;
@@ -1458,7 +1486,6 @@
        initialLeft = rect.left;
        initialTop = rect.top;
    
-       // Switch to absolute positioning from current bounding rect
        el.style.bottom = "auto";
        el.style.right = "auto";
        el.style.left = `${initialLeft}px`;
@@ -1501,7 +1528,6 @@
        document.removeEventListener("mouseup", onPointerUp);
        document.removeEventListener("touchend", onPointerUp);
    
-       // If user simply tapped without dragging, trigger assistant
        if (!hasMoved) {
          startVoiceAssistant();
        }
@@ -1513,7 +1539,6 @@
    
    makeWidgetDraggable(avatarWidget);
    
-   // Initial Auto-Trigger on screen tap after splash screen ends
    document.addEventListener("click", () => {
      if (!hasAutoTriggered && document.body.classList.contains("app-ready")) {
        hasAutoTriggered = true;
@@ -1522,7 +1547,7 @@
    }, { once: true });
    
    /* =========================================================
-      13. APP LOADING & INITIALIZATION
+      14. APP LOADING & INITIALIZATION
       ========================================================= */
    
    function initLoadingScreen() {
@@ -1543,7 +1568,7 @@
            splashEl.classList.add("loaded");
            setTimeout(() => {
              splashEl.style.display = "none";
-             document.body.classList.add("app-ready"); // Voice widget appear aagum
+             document.body.classList.add("app-ready");
            }, 500);
          }, 400);
        } else {
@@ -1552,34 +1577,28 @@
        }
      }, 35);
    }
-   /* =========================================================
-   14. STRICT APK-ONLY IN-APP UPDATE CHECK
-   ========================================================= */
 
 /* =========================================================
-   IN-APP UPDATE ENGINE (WORKS ON BOTH OLD & NEW APK)
+   15. IN-APP UPDATE ENGINE (OLD & NEW APK DETECTION)
    ========================================================= */
 
-// Old APK, New APK, matrum Mobile Browser-ai sariyaa identify seiyum function
 function isInsideAnyApk() {
   const ua = navigator.userAgent || "";
-
-  // 1. New APK check
   const isNewApk = Boolean(window.AndroidApp) || ua.includes("CheyyarBusAPK");
-
-  // 2. Old APK check (Standard Android WebView-il '; wv' alladhu 'Version/4.0' irukkum)
   const isAndroid = /android/i.test(ua);
   const isWebView = ua.includes("; wv") || (isAndroid && ua.includes("Version/"));
 
   return isNewApk || isWebView;
 }
 
-const CURRENT_APP_VERSION = 2; // Pazhaiya APK version code
+const CURRENT_APP_VERSION = 1;
 
 async function checkForAppUpdate() {
-  // Website alladhu PC Chrome browser-il open seidhaal ingeye stop aagividum
-  if (!isInsideAnyApk()) {
-    return;
+  if (!isInsideAnyApk()) return;
+
+  let currentInstalledVersion = CURRENT_APP_VERSION;
+  if (window.AndroidApp && typeof window.AndroidApp.getAppVersionCode === "function") {
+    currentInstalledVersion = window.AndroidApp.getAppVersionCode();
   }
 
   try {
@@ -1587,9 +1606,7 @@ async function checkForAppUpdate() {
     if (!res.ok) return;
 
     const data = await res.json();
-
-    // version.json-il latestVersionCode 2 irundhaal mattum popup varum
-    if (Number(data.latestVersionCode) > CURRENT_APP_VERSION) {
+    if (Number(data.latestVersionCode) > currentInstalledVersion) {
       showUpdateModal(data);
     }
   } catch (err) {
@@ -1598,7 +1615,6 @@ async function checkForAppUpdate() {
 }
 
 function showUpdateModal(data) {
-  // Modal already display aagirundhaa marubadiyum varaadhu
   if (document.getElementById("update-modal-backdrop")) return;
 
   const modal = document.createElement("div");
@@ -1623,30 +1639,22 @@ function showUpdateModal(data) {
   document.body.appendChild(modal);
 
   document.getElementById("btn-update-apk").addEventListener("click", () => {
-    // New APK irundhaal Background Download Bridge execute aagum
     if (window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function") {
       window.AndroidApp.downloadAndInstallApk(data.apkUrl);
       modal.remove();
     } else {
-      // Old APK-il direct download link open aagum
       window.location.href = data.apkUrl;
     }
   });
 }
 
-// App start aagi 1.5 seconds-il check seiyum
-document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(checkForAppUpdate, 1500);
-});
-/* =========================================================
-   REAL-TIME VISIT HIT COUNTER (AUTO INCREMENT ON EVERY VISIT)
-   ========================================================= */
+// Check for update after 1.5 seconds
+setTimeout(checkForAppUpdate, 1500);
 
 /* =========================================================
-   FIRESTORE REAL-TIME ATOMIC VISITOR COUNTER
+   16. FIRESTORE REAL-TIME ATOMIC VISITOR COUNTER
    ========================================================= */
 
-// Unga Firebase Project Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCk-YR0KFQzHlFHs36ly4mV9u-S5aiXVwE",
   authDomain: "cheyyarbus.firebaseapp.com",
@@ -1656,50 +1664,57 @@ const firebaseConfig = {
   appId: "1:593131650414:web:61319e188fb60edb94157f"
 };
 
-// Initialize Firebase
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const db = firebase.firestore();
-
 async function updateFirestoreLiveVisits() {
   const visitEl = document.getElementById("visit-count");
   if (!visitEl) return;
 
-  const statsDocRef = db.collection("app_stats").doc("visitors");
+  if (typeof firebase === "undefined" || !firebase.firestore) {
+    console.warn("Firebase SDK not yet ready.");
+    return;
+  }
 
   try {
-    // 1. Session check: Orey user refresh pannikitte irundha repeat spam aagama irukka
-    const hasVisitedThisSession = sessionStorage.getItem("cb_session_counted");
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+    const statsDocRef = db.collection("app_stats").doc("visitors");
 
+    const hasVisitedThisSession = sessionStorage.getItem("cb_session_counted");
     if (!hasVisitedThisSession) {
-      // Atomic Increment: Multiple devices ore nerathil open panninaalum race-condition illamal +1 aagum
       await statsDocRef.update({
         count: firebase.firestore.FieldValue.increment(1)
+      }).catch(async () => {
+        await statsDocRef.set({ count: 1251 }, { merge: true });
       });
       sessionStorage.setItem("cb_session_counted", "true");
     }
 
-    // 2. Real-Time Snapshot Listener: Vera yaaru open panninaalum screen-la number udaney live-aa jump aagum
     statsDocRef.onSnapshot((doc) => {
-      if (doc.exists) {
+      if (doc && doc.exists) {
         const liveCount = doc.data().count || 0;
         visitEl.textContent = Number(liveCount).toLocaleString();
       }
+    }, err => {
+      console.warn("Firestore snapshot listener:", err);
     });
 
   } catch (error) {
     console.error("Firestore counter error:", error);
-    // Offline alladhu doc illaatha podhu initial set seiyum fallback
-    statsDocRef.set({ count: 1251 }, { merge: true });
   }
 }
 
-// App start aana udan run aagum
-document.addEventListener("DOMContentLoaded", () => {
+// Initialize Firestore Counter
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", updateFirestoreLiveVisits);
+} else {
   updateFirestoreLiveVisits();
-});
-   
+}
+
+/* =========================================================
+   17. REGULAR TIMERS & INITS
+   ========================================================= */
+
    setInterval(() => {
      const now = nowMin();
      if (activeRow && activeRow.min < now) {
