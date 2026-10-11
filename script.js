@@ -1,10 +1,9 @@
 /* =========================================================
-   CHEYYAR HUB - BUS TIMINGS ENGINE (ULTRA PERFORMANCE)
-   Features:
-   - Forward routes & Live Timings
-   - Universal Return Bus Generator (Kanchi/Arani/Vandavasi/Vellore -> Cheyyar)
-   - Strict One-Way Direction Search & Swap Logic
-   - Schedule-Based Virtual Live Tracking (Popup Modal Integration)
+   CHEYYAR HUB - BUS TIMINGS ENGINE (FULL PRODUCTION READY)
+   - Dynamic Custom Autocomplete Dropdown (A-Z Filtered)
+   - Universal Intermediate Stop Filtering (Village vs Highway)
+   - Direct Live Moving Badge & Virtual Tracking Modal
+   - Ultra-smooth Performance & Responsive Handlers
    ========================================================= */
 
    const $ = id => document.getElementById(id);
@@ -30,7 +29,7 @@
    document.documentElement.dataset.theme = "dark";
    
    /* =========================================================
-      1. ROUTE SEQUENCES & APPROXIMATE OFFSETS (MINUTES)
+      1. ROUTE SEQUENCES & OFFSETS (MINUTES)
       ========================================================= */
    
    const ROUTE_VELLORE_ARCOT = [
@@ -86,11 +85,11 @@
    ];
    
    const OFFSETS_KANCHI_VEMBAKKAM = {
-     "cheyyar": 0, "arani koot road": 7, "duli": 13, "pappanthangal": 18,
-     "sirugattur": 24, "ramakrishnapuram": 28, "hasanamapet": 33,
-     "perungattur": 38, "alanthagal": 43, "vembakkam": 48,
-     "pillanthangal": 53, "kolivakkam": 58, "iyyankkulam": 63,
-     "abdullapuram": 68, "sevlimedu": 74, "kanchipuram": 80
+     "cheyyar": 0, "arani koot road": 5, "duli": 9, "pappanthangal": 13,
+     "sirugattur": 17, "ramakrishnapuram": 20, "hasanamapet": 24,
+     "perungattur": 27, "alanthagal": 31, "vembakkam": 34,
+     "pillanthangal": 38, "kolivakkam": 41, "iyyankkulam": 45,
+     "abdullapuram": 48, "sevlimedu": 53, "kanchipuram": 57
    };
    
    const ROUTE_VANDAVASI_DIRECT = [
@@ -217,9 +216,24 @@
    }
    
    function isVembakkamRoute(r) {
-     const rKey = (r.routeKey || "").toLowerCase();
-     const dest = ((r.to || "") + " " + (r.toTa || "")).toLowerCase();
-     return rKey.includes("vembakkam") || dest.includes("vembakkam") || dest.includes("வெம்பாக்கம்") || dest.includes("பெருங்கட்டூர்");
+     const allText = [
+       r.routeKey || "",
+       r.to || "",
+       r.toTa || "",
+       r.bus || "",
+       r.busTa || "",
+       r.via || "",
+       r.viaTa || ""
+     ].join(" ").toLowerCase();
+   
+     return allText.includes("vembakkam") || 
+            allText.includes("வெம்பாக்கம்") || 
+            allText.includes("perungattur") || 
+            allText.includes("பெருங்கட்டூர்") ||
+            allText.includes("hasanamapet") ||
+            allText.includes("அசனமாபேட்டை") ||
+            allText.includes("balasubramaniyar") ||
+            allText.includes("பாலசுப்பிரமணியர்");
    }
    
    function getRouteStops(r) {
@@ -363,14 +377,12 @@
    $("st-r").textContent = IDS.length;
    
    /* =========================================================
-      4. LOCATION AUTO-COMPLETE SUGGESTIONS
+      4. SMART AUTOCOMPLETE DROPDOWN (FAIL-SAFE & A-Z ONLY)
       ========================================================= */
    
    function populateLocationDatalists() {
-     const fromSet = new Set(["Cheyyar", "செய்யாறு", "Kanchipuram", "காஞ்சிபுரம்", "Arani", "ஆரணி", "Vandavasi", "வந்தவாசி", "Vellore", "வேலூர்"]);
-     const toSet = new Set(["Cheyyar", "செய்யாறு"]);
-   
-     const allStops = Array.from(new Set([
+     const allStops = new Set([
+       "Cheyyar", "Kanchipuram", "Arani", "Vandavasi", "Vellore", "Arcot",
        ...ROUTE_VELLORE_ARCOT,
        ...ROUTE_VELLORE_SIVAJI,
        ...ROUTE_KANCHI_DIRECT,
@@ -383,23 +395,74 @@
        ...ROUTE_PARASUR,
        ...ROUTE_GINGEE,
        ...ROUTE_PUDUCHERRY
-     ]));
-   
-     allStops.forEach(s => {
-       const formatted = s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-       fromSet.add(formatted);
-       toSet.add(formatted);
-     });
+     ]);
    
      IDS.forEach(k => {
        ROUTES[k].rows.forEach(r => {
-         if (r.from) { fromSet.add(r.from); fromSet.add(r.fromTa); }
-         if (r.to) { toSet.add(r.to.split("via")[0].trim()); toSet.add(r.toTa.split("வழி")[0].trim()); }
+         if (r.from) allStops.add(r.from.trim());
+         if (r.to) allStops.add(r.to.split("via")[0].split("→")[0].trim());
        });
      });
    
-     fromList.innerHTML = Array.from(fromSet).filter(Boolean).map(l => `<option value="${l}">`).join("");
-     toList.innerHTML = Array.from(toSet).filter(Boolean).map(l => `<option value="${l}">`).join("");
+     const englishStops = Array.from(allStops)
+       .filter(name => typeof name === "string" && !/[\u0B80-\u0BFF]/.test(name) && name.trim().length > 1)
+       .map(name => name.trim().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" "));
+   
+     const sortedStops = Array.from(new Set(englishStops)).sort((a, b) => a.localeCompare(b));
+   
+     function attachSmartDropdown(inputEl, dropdownId) {
+       if (!inputEl) return;
+       const parent = inputEl.parentElement;
+       parent.classList.add("autocomplete-box-wrapper");
+   
+       let dropdownEl = document.getElementById(dropdownId);
+       if (!dropdownEl) {
+         dropdownEl = document.createElement("div");
+         dropdownEl.id = dropdownId;
+         dropdownEl.className = "custom-autocomplete-dropdown";
+         parent.appendChild(dropdownEl);
+       }
+   
+       inputEl.addEventListener("input", () => {
+         const val = inputEl.value.trim().toLowerCase();
+         if (!val) {
+           dropdownEl.style.display = "none";
+           dropdownEl.innerHTML = "";
+           return;
+         }
+   
+         const matches = sortedStops.filter(s => s.toLowerCase().startsWith(val));
+   
+         if (matches.length > 0) {
+           dropdownEl.innerHTML = matches.map(city => `
+             <div class="autocomplete-item" data-val="${city}">
+               <span>📍</span> ${city}
+             </div>
+           `).join("");
+           dropdownEl.style.display = "block";
+         } else {
+           dropdownEl.style.display = "none";
+         }
+       });
+   
+       dropdownEl.addEventListener("mousedown", e => {
+         const item = e.target.closest(".autocomplete-item");
+         if (item) {
+           inputEl.value = item.dataset.val;
+           dropdownEl.style.display = "none";
+           render();
+         }
+       });
+   
+       document.addEventListener("click", e => {
+         if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+           dropdownEl.style.display = "none";
+         }
+       });
+     }
+   
+     attachSmartDropdown(fromEl, "from-dropdown");
+     attachSmartDropdown(toEl, "to-dropdown");
    }
    
    /* =========================================================
@@ -442,180 +505,118 @@
      const text = `🚌 *Cheyyar Bus Timings*\n📍 *Route:* ${displayFrom} ➔ ${displayTo}\n🕒 *Time:* ${displayTime}\n🚍 *Bus:* ${BUS(r)}\n\nLive on Cheyyar Bus Hub!`;
      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
    }
+   
    /* =========================================================
-   DIRECT MOVING STATUS BADGE GENERATOR
-   ========================================================= */
-function getDirectLiveStatusBadge(r) {
-  const currentMinutes = nowMin();
-  let stops = getRouteStops(r);
-
-  let offsetTable = OFFSETS_ARCOT;
-  if (stops === ROUTE_VELLORE_SIVAJI) offsetTable = OFFSETS_SIVAJI;
-  else if (stops === ROUTE_KANCHI_VEMBAKKAM) offsetTable = OFFSETS_KANCHI_VEMBAKKAM;
-  else if (stops === ROUTE_KANCHI_DIRECT) offsetTable = OFFSETS_KANCHI_DIRECT;
-  else if (stops === ROUTE_VANDAVASI_DIRECT) offsetTable = OFFSETS_VANDAVASI;
-  else if (stops === ROUTE_ARANI_SV_NAGARAM) offsetTable = OFFSETS_ARANI_SV_NAGARAM;
-  else if (stops === ROUTE_KORUKKAI) offsetTable = OFFSETS_KORUKKAI;
-  else if (stops === ROUTE_THAVASI) offsetTable = OFFSETS_THAVASI;
-  else if (stops === ROUTE_KALAVAI) offsetTable = OFFSETS_KALAVAI;
-  else if (stops === ROUTE_PARASUR) offsetTable = OFFSETS_PARASUR;
-  else if (stops === ROUTE_GINGEE) offsetTable = OFFSETS_GINGEE;
-  else if (stops === ROUTE_PUDUCHERRY) offsetTable = OFFSETS_PUDUCHERRY;
-
-  const totalTripTime = Math.max(...Object.values(offsetTable)) || 60;
-  const isReturn = Boolean(r.isReturnEstimated);
-  if (isReturn) stops = [...stops].reverse();
-
-  const busStartMin = r.displayMin || r.min;
-  const busEndMin = busStartMin + totalTripTime;
-
-  // Bus starting time munnadi irundha:
-  if (currentMinutes < busStartMin) {
-    return `<span class="live-moving-badge departing-soon">⏳ At ${ORIGIN(r)}</span>`;
-  }
-
-  // Bus destination reach aana udan:
-  if (currentMinutes >= busEndMin) {
-    return `<span class="live-moving-badge approaching-dest">🏁 Reached ${FINAL_TO(r)}</span>`;
-  }
-
-  // Bus road-la odittu irukkum pothu current stop-ai identify panrom:
-  let currentStop = ORIGIN(r);
-  for (let i = 0; i < stops.length; i++) {
-    const k = stops[i].toLowerCase().trim();
-    let off = offsetTable[k] || 0;
-    if (isReturn) off = totalTripTime - off;
-
-    const stopArrivalMin = busStartMin + off;
-    if (currentMinutes >= stopArrivalMin) {
-      currentStop = stops[i].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-    } else {
-      break;
-    }
-  }
-
-  return `
-    <span class="live-moving-badge on-route">
-      <span class="pulse-dot-small"></span>
-      Near ${currentStop}
-    </span>
-  `;
-}
-   /* =========================================================
-      6. VIRTUAL LIVE TRACKING GENERATOR & POPUP CONTROLLER
+      6. VIRTUAL LIVE TRACKING POPUP MODAL
       ========================================================= */
    
-      function generateLiveTimeline(r) {
-        const currentMinutes = nowMin();
-        let stops = getRouteStops(r);
-        
-        let offsetTable = OFFSETS_ARCOT;
-        if (stops === ROUTE_VELLORE_SIVAJI) offsetTable = OFFSETS_SIVAJI;
-        else if (stops === ROUTE_KANCHI_VEMBAKKAM) offsetTable = OFFSETS_KANCHI_VEMBAKKAM;
-        else if (stops === ROUTE_KANCHI_DIRECT) offsetTable = OFFSETS_KANCHI_DIRECT;
-        else if (stops === ROUTE_VANDAVASI_DIRECT) offsetTable = OFFSETS_VANDAVASI;
-        else if (stops === ROUTE_ARANI_SV_NAGARAM) offsetTable = OFFSETS_ARANI_SV_NAGARAM;
-        else if (stops === ROUTE_KORUKKAI) offsetTable = OFFSETS_KORUKKAI;
-        else if (stops === ROUTE_THAVASI) offsetTable = OFFSETS_THAVASI;
-        else if (stops === ROUTE_KALAVAI) offsetTable = OFFSETS_KALAVAI;
-        else if (stops === ROUTE_PARASUR) offsetTable = OFFSETS_PARASUR;
-        else if (stops === ROUTE_GINGEE) offsetTable = OFFSETS_GINGEE;
-        else if (stops === ROUTE_PUDUCHERRY) offsetTable = OFFSETS_PUDUCHERRY;
-      
-        const totalTripTime = Math.max(...Object.values(offsetTable)) || 60;
-        const isReturn = Boolean(r.isReturnEstimated);
-        if (isReturn) {
-          stops = [...stops].reverse();
-        }
-      
-        const busStartMin = r.displayMin || r.min;
-        const busEndMin = busStartMin + totalTripTime;
-      
-        let currentStopName = ORIGIN(r);
-        let statusMsg = "";
-        let foundCurrent = false;
-      
-        // Stops list html generate pannumbothe current stop-ai identify panrom
-        let stopsHtml = "";
-      
-        stops.forEach((stopKey) => {
-          const k = stopKey.toLowerCase().trim();
-          let off = offsetTable[k] || 0;
-          if (isReturn) off = totalTripTime - off;
-      
-          const stopArrivalMin = busStartMin + off;
-          const timeStr = minToTimeStr(stopArrivalMin);
-      
-          let stopClass = "upcoming";
-          const cleanStopName = stopKey.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-      
-          if (currentMinutes >= stopArrivalMin) {
-            stopClass = "passed";
-            currentStopName = cleanStopName; // Thaandiya stop-ai save panrom
-          } else if (!foundCurrent && currentMinutes < stopArrivalMin) {
-            stopClass = "current";
-            foundCurrent = true;
-            currentStopName = cleanStopName; // Ippo approaching stop
-          }
-      
-          stopsHtml += `
-            <div class="timeline-stop-item ${stopClass}">
-              <span class="stop-dot"></span>
-              <span class="stop-name">${cleanStopName} ${stopClass === 'current' ? '← (Approaching)' : ''}</span>
-              <span class="stop-time">${timeStr}</span>
-            </div>
-          `;
-        });
-      
-        if (currentMinutes < busStartMin) {
-          statusMsg = `Scheduled: Departs from ${ORIGIN(r)} in ${busStartMin - currentMinutes} mins`;
-        } else if (currentMinutes >= busEndMin) {
-          statusMsg = `Trip Completed (Reached ${FINAL_TO(r)})`;
-          currentStopName = FINAL_TO(r);
-        } else {
-          statusMsg = `🟢 Live on Route (Near ${currentStopName})`;
-        }
-      
-        const html = `
-          <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; color:#a9aeba; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.06);">
-            <span>${statusMsg}</span>
-            <strong style="color:#ff8a52;">Total: ${totalTripTime} mins</strong>
-          </div>
-          <div class="timeline-stops-list">
-            ${stopsHtml}
-          </div>
-        `;
-      
-        return { html, currentStopName, isCompleted: currentMinutes >= busEndMin, isUpcoming: currentMinutes < busStartMin };
-      }
+   function generateLiveTimeline(r) {
+     const currentMinutes = nowMin();
+     let stops = getRouteStops(r);
+     
+     let offsetTable = OFFSETS_ARCOT;
+     if (stops === ROUTE_VELLORE_SIVAJI) offsetTable = OFFSETS_SIVAJI;
+     else if (stops === ROUTE_KANCHI_VEMBAKKAM) offsetTable = OFFSETS_KANCHI_VEMBAKKAM;
+     else if (stops === ROUTE_KANCHI_DIRECT) offsetTable = OFFSETS_KANCHI_DIRECT;
+     else if (stops === ROUTE_VANDAVASI_DIRECT) offsetTable = OFFSETS_VANDAVASI;
+     else if (stops === ROUTE_ARANI_SV_NAGARAM) offsetTable = OFFSETS_ARANI_SV_NAGARAM;
+     else if (stops === ROUTE_KORUKKAI) offsetTable = OFFSETS_KORUKKAI;
+     else if (stops === ROUTE_THAVASI) offsetTable = OFFSETS_THAVASI;
+     else if (stops === ROUTE_KALAVAI) offsetTable = OFFSETS_KALAVAI;
+     else if (stops === ROUTE_PARASUR) offsetTable = OFFSETS_PARASUR;
+     else if (stops === ROUTE_GINGEE) offsetTable = OFFSETS_GINGEE;
+     else if (stops === ROUTE_PUDUCHERRY) offsetTable = OFFSETS_PUDUCHERRY;
+   
+     const totalTripTime = Math.max(...Object.values(offsetTable)) || 60;
+     const isReturn = Boolean(r.isReturnEstimated);
+     if (isReturn) stops = [...stops].reverse();
+   
+     const busStartMin = r.displayMin || r.min;
+     const busEndMin = busStartMin + totalTripTime;
+   
+     let currentStopName = ORIGIN(r);
+     let statusMsg = "";
+     let foundCurrent = false;
+   
+     let stopsHtml = "";
+   
+     stops.forEach((stopKey) => {
+       const k = stopKey.toLowerCase().trim();
+       let off = offsetTable[k] || 0;
+       if (isReturn) off = totalTripTime - off;
+   
+       const stopArrivalMin = busStartMin + off;
+       const timeStr = minToTimeStr(stopArrivalMin);
+   
+       let stopClass = "upcoming";
+       const cleanStopName = stopKey.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+   
+       if (currentMinutes >= stopArrivalMin) {
+         stopClass = "passed";
+         currentStopName = cleanStopName;
+       } else if (!foundCurrent && currentMinutes < stopArrivalMin) {
+         stopClass = "current";
+         foundCurrent = true;
+         currentStopName = cleanStopName;
+       }
+   
+       stopsHtml += `
+         <div class="timeline-stop-item ${stopClass}">
+           <span class="stop-dot"></span>
+           <span class="stop-name">${cleanStopName} ${stopClass === 'current' ? '← (Approaching)' : ''}</span>
+           <span class="stop-time">${timeStr}</span>
+         </div>
+       `;
+     });
+   
+     if (currentMinutes < busStartMin) {
+       statusMsg = `Scheduled: Departs from ${ORIGIN(r)} in ${busStartMin - currentMinutes} mins`;
+     } else if (currentMinutes >= busEndMin) {
+       statusMsg = `Trip Completed (Reached ${FINAL_TO(r)})`;
+       currentStopName = FINAL_TO(r);
+     } else {
+       statusMsg = `🟢 Live on Route (Near ${currentStopName})`;
+     }
+   
+     const html = `
+       <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; color:#a9aeba; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.06);">
+         <span>${statusMsg}</span>
+         <strong style="color:#ff8a52;">Total: ${totalTripTime} mins</strong>
+       </div>
+       <div class="timeline-stops-list">
+         ${stopsHtml}
+       </div>
+     `;
+   
+     return { html, currentStopName, isCompleted: currentMinutes >= busEndMin, isUpcoming: currentMinutes < busStartMin };
+   }
    
    const trackerModal = $("tracker-modal");
    const closeTrackerBtn = $("close-tracker-modal");
    
    function openTrackerModal(r) {
-    if (!trackerModal) return;
-    const nameEl = $("t-popup-bus-name");
-    const summaryEl = $("t-popup-route-summary");
-    const contentEl = $("tracker-popup-content");
-  
-    const timelineData = generateLiveTimeline(r);
-  
-    if (nameEl) nameEl.textContent = BUS(r);
-    
-    // 👉 Bus sathuvacheri irundhaa "Sathuvacheri ➔ Vellore" endru live-aa kaattum!
-    if (summaryEl) {
-      if (timelineData.isUpcoming) {
-        summaryEl.innerHTML = `Starting from <strong>${ORIGIN(r)}</strong> ➔ ${FINAL_TO(r)} (${r.displayTime})`;
-      } else if (timelineData.isCompleted) {
-        summaryEl.innerHTML = `Reached <strong>${FINAL_TO(r)}</strong> • Service Completed`;
-      } else {
-        summaryEl.innerHTML = `📍 Currently at <strong>${timelineData.currentStopName}</strong> ➔ ${FINAL_TO(r)}`;
-      }
-    }
-  
-    if (contentEl) contentEl.innerHTML = timelineData.html;
-    trackerModal.style.display = "flex";
-  }
+     if (!trackerModal) return;
+     const nameEl = $("t-popup-bus-name");
+     const summaryEl = $("t-popup-route-summary");
+     const contentEl = $("tracker-popup-content");
+   
+     const timelineData = generateLiveTimeline(r);
+   
+     if (nameEl) nameEl.textContent = BUS(r);
+     
+     if (summaryEl) {
+       if (timelineData.isUpcoming) {
+         summaryEl.innerHTML = `Starting from <strong>${ORIGIN(r)}</strong> ➔ ${FINAL_TO(r)} (${r.displayTime})`;
+       } else if (timelineData.isCompleted) {
+         summaryEl.innerHTML = `Reached <strong>${FINAL_TO(r)}</strong> • Service Completed`;
+       } else {
+         summaryEl.innerHTML = `📍 Currently at <strong>${timelineData.currentStopName}</strong> ➔ ${FINAL_TO(r)}`;
+       }
+     }
+   
+     if (contentEl) contentEl.innerHTML = timelineData.html;
+     trackerModal.style.display = "flex";
+   }
    
    function closeTrackerModal() {
      if (trackerModal) trackerModal.style.display = "none";
@@ -629,7 +630,64 @@ function getDirectLiveStatusBadge(r) {
    }
    
    /* =========================================================
-      7. STRICT FILTER & RENDER ENGINE
+      7. DIRECT LIVE MOVING STATUS BADGE GENERATOR
+      ========================================================= */
+   
+   function getDirectLiveStatusBadge(r) {
+     const currentMinutes = nowMin();
+     let stops = getRouteStops(r);
+   
+     let offsetTable = OFFSETS_ARCOT;
+     if (stops === ROUTE_VELLORE_SIVAJI) offsetTable = OFFSETS_SIVAJI;
+     else if (stops === ROUTE_KANCHI_VEMBAKKAM) offsetTable = OFFSETS_KANCHI_VEMBAKKAM;
+     else if (stops === ROUTE_KANCHI_DIRECT) offsetTable = OFFSETS_KANCHI_DIRECT;
+     else if (stops === ROUTE_VANDAVASI_DIRECT) offsetTable = OFFSETS_VANDAVASI;
+     else if (stops === ROUTE_ARANI_SV_NAGARAM) offsetTable = OFFSETS_ARANI_SV_NAGARAM;
+     else if (stops === ROUTE_KORUKKAI) offsetTable = OFFSETS_KORUKKAI;
+     else if (stops === ROUTE_THAVASI) offsetTable = OFFSETS_THAVASI;
+     else if (stops === ROUTE_KALAVAI) offsetTable = OFFSETS_KALAVAI;
+     else if (stops === ROUTE_PARASUR) offsetTable = OFFSETS_PARASUR;
+     else if (stops === ROUTE_GINGEE) offsetTable = OFFSETS_GINGEE;
+     else if (stops === ROUTE_PUDUCHERRY) offsetTable = OFFSETS_PUDUCHERRY;
+   
+     const totalTripTime = Math.max(...Object.values(offsetTable)) || 60;
+     const isReturn = Boolean(r.isReturnEstimated);
+     if (isReturn) stops = [...stops].reverse();
+   
+     const busStartMin = r.displayMin || r.min;
+     const busEndMin = busStartMin + totalTripTime;
+   
+     if (currentMinutes < busStartMin) {
+       return `<span class="live-moving-badge departing-soon">⏳ At ${ORIGIN(r)}</span>`;
+     }
+     if (currentMinutes >= busEndMin) {
+       return `<span class="live-moving-badge approaching-dest">🏁 Reached ${FINAL_TO(r)}</span>`;
+     }
+   
+     let currentStop = ORIGIN(r);
+     for (let i = 0; i < stops.length; i++) {
+       const k = stops[i].toLowerCase().trim();
+       let off = offsetTable[k] || 0;
+       if (isReturn) off = totalTripTime - off;
+   
+       const stopArrivalMin = busStartMin + off;
+       if (currentMinutes >= stopArrivalMin) {
+         currentStop = stops[i].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+       } else {
+         break;
+       }
+     }
+   
+     return `
+       <span class="live-moving-badge on-route">
+         <span class="pulse-dot-small"></span>
+         Near ${currentStop}
+       </span>
+     `;
+   }
+   
+   /* =========================================================
+      8. FILTER & RENDER ENGINE (PERFECT ROUTE ISOLATION)
       ========================================================= */
    
    function render() {
@@ -658,17 +716,12 @@ function getDirectLiveStatusBadge(r) {
        const isSearchingFromCheyyar = qFrom && (qFrom.includes("cheyyar") || qFrom.includes("செய்யாறு"));
        const isSearchingToCheyyar = qTo && (qTo.includes("cheyyar") || qTo.includes("செய்யாறு"));
    
-       if (isSearchingFromCheyyar && !isSearchingToCheyyar && r.isReturnEstimated) {
-         return false;
-       }
-       if (isSearchingToCheyyar && !isSearchingFromCheyyar && !r.isReturnEstimated && r.from.toLowerCase().includes("cheyyar")) {
-         return false;
-       }
+       if (isSearchingFromCheyyar && !isSearchingToCheyyar && r.isReturnEstimated) return false;
+       if (isSearchingToCheyyar && !isSearchingFromCheyyar && !r.isReturnEstimated && r.from.toLowerCase().includes("cheyyar")) return false;
    
-       let stopsList = getRouteStops(r).map(s => s.toLowerCase());
-       if (r.isReturnEstimated) {
-         stopsList = [...stopsList].reverse();
-       }
+       const stopsList = getRouteStops(r);
+       let stopsMapped = stopsList.map(s => s.toLowerCase());
+       if (r.isReturnEstimated) stopsMapped = [...stopsMapped].reverse();
    
        const matchStop = (stopName, query) => {
          stopName = stopName.toLowerCase().trim();
@@ -680,19 +733,19 @@ function getDirectLiveStatusBadge(r) {
    
        let fromIdx = -1;
        if (qFrom) {
-         fromIdx = stopsList.findIndex(s => matchStop(s, qFrom));
+         fromIdx = stopsMapped.findIndex(s => matchStop(s, qFrom));
          const exactFromMatch = r.from.toLowerCase().includes(qFrom) || r.fromTa.toLowerCase().includes(qFrom);
          if (!exactFromMatch && fromIdx === -1) return false;
-         if (!r.isReturnEstimated && !exactFromMatch && fromIdx > 0 && !isSearchingFromCheyyar) return false;
        }
    
        let toIdx = -1;
        if (qTo) {
-         toIdx = stopsList.findIndex(s => matchStop(s, qTo));
+         toIdx = stopsMapped.findIndex(s => matchStop(s, qTo));
          const exactToMatch = r.to.toLowerCase().includes(qTo) || r.toTa.toLowerCase().includes(qTo);
          if (!exactToMatch && toIdx === -1) return false;
        }
    
+       // Direction validation
        if (qFrom && qTo && fromIdx !== -1 && toIdx !== -1) {
          if (fromIdx >= toIdx) return false;
        }
@@ -715,34 +768,28 @@ function getDirectLiveStatusBadge(r) {
        });
      });
    
-     // Bus destination reach aagi 5 mins aagura varaikkum list-la irukanum
-// Bus destination reach aagi 1 min mudinjadhum list-ai vittu poidum
-if (showUpcomingOnly) {
-  const upcomingList = list.filter(r => {
-    const stops = getRouteStops(r);
-    let offsetTable = OFFSETS_ARCOT;
-    if (stops === ROUTE_VELLORE_SIVAJI) offsetTable = OFFSETS_SIVAJI;
-    else if (stops === ROUTE_KANCHI_VEMBAKKAM) offsetTable = OFFSETS_KANCHI_VEMBAKKAM;
-    else if (stops === ROUTE_KANCHI_DIRECT) offsetTable = OFFSETS_KANCHI_DIRECT;
-    else if (stops === ROUTE_VANDAVASI_DIRECT) offsetTable = OFFSETS_VANDAVASI;
-    else if (stops === ROUTE_ARANI_SV_NAGARAM) offsetTable = OFFSETS_ARANI_SV_NAGARAM;
-    else if (stops === ROUTE_KORUKKAI) offsetTable = OFFSETS_KORUKKAI;
-    else if (stops === ROUTE_THAVASI) offsetTable = OFFSETS_THAVASI;
-    else if (stops === ROUTE_KALAVAI) offsetTable = OFFSETS_KALAVAI;
-    else if (stops === ROUTE_PARASUR) offsetTable = OFFSETS_PARASUR;
-    else if (stops === ROUTE_GINGEE) offsetTable = OFFSETS_GINGEE;
-    else if (stops === ROUTE_PUDUCHERRY) offsetTable = OFFSETS_PUDUCHERRY;
-
-    const totalTripMins = Math.max(...Object.values(offsetTable)) || 60;
-    
-    // Bus destination reach aagum exact minute
-    const busEndMin = (r.displayMin || r.min) + totalTripMins;
-
-    // 👉 Destination reach aagi 1 minute varaikkum mattum thaan irukkum, apram poidum!
-    return currentMinutes <= (busEndMin + 1);
-  });
-  list = upcomingList;
-}
+     if (showUpcomingOnly) {
+       const upcomingList = list.filter(r => {
+         const stops = getRouteStops(r);
+         let offsetTable = OFFSETS_ARCOT;
+         if (stops === ROUTE_VELLORE_SIVAJI) offsetTable = OFFSETS_SIVAJI;
+         else if (stops === ROUTE_KANCHI_VEMBAKKAM) offsetTable = OFFSETS_KANCHI_VEMBAKKAM;
+         else if (stops === ROUTE_KANCHI_DIRECT) offsetTable = OFFSETS_KANCHI_DIRECT;
+         else if (stops === ROUTE_VANDAVASI_DIRECT) offsetTable = OFFSETS_VANDAVASI;
+         else if (stops === ROUTE_ARANI_SV_NAGARAM) offsetTable = OFFSETS_ARANI_SV_NAGARAM;
+         else if (stops === ROUTE_KORUKKAI) offsetTable = OFFSETS_KORUKKAI;
+         else if (stops === ROUTE_THAVASI) offsetTable = OFFSETS_THAVASI;
+         else if (stops === ROUTE_KALAVAI) offsetTable = OFFSETS_KALAVAI;
+         else if (stops === ROUTE_PARASUR) offsetTable = OFFSETS_PARASUR;
+         else if (stops === ROUTE_GINGEE) offsetTable = OFFSETS_GINGEE;
+         else if (stops === ROUTE_PUDUCHERRY) offsetTable = OFFSETS_PUDUCHERRY;
+   
+         const totalTripMins = Math.max(...Object.values(offsetTable)) || 60;
+         const busEndMin = (r.displayMin || r.min) + totalTripMins;
+         return currentMinutes <= (busEndMin + 1);
+       });
+       list = upcomingList;
+     }
    
      list.sort((a, b) => a.displayMin - b.displayMin);
    
@@ -778,7 +825,6 @@ if (showUpcomingOnly) {
            ${r.isOffset ? `<small style="display:block; font-size:10px; color:#ff7a45; font-weight:600;">(+${r.offsetMins}m from Cheyyar)</small>` : ''}
          </div>
        `;
-       
    
        const tdBus = document.createElement("td");
        tdBus.className = "td-bus";
@@ -800,7 +846,7 @@ if (showUpcomingOnly) {
          routeBadge = `<span class="route-tag tag-gingee">📍 வழி: வந்தவாசி ➔ செஞ்சி</span>`;
        } else if (routeId.includes("puducherry") || busDest.includes("puducherry") || busDest.includes("புதுச்சேரி")) {
          routeBadge = `<span class="route-tag tag-puducherry">📍 வழி: திண்டிவனம் ➔ பாண்டி</span>`;
-       } else if (routeId.includes("vembakkam") || busDest.includes("vembakkam") || busDest.includes("பெருங்கட்டூர்")) {
+       } else if (isVembakkamRoute(r)) {
          routeBadge = `<span class="route-tag tag-vembakkam">📍 வழி: வெம்பாக்கம்</span>`;
        } else if (routeId.includes("arcot") || busDest.includes("vellore") || busDest.includes("வேலூர்") || busDest.includes("arcot") || busDest.includes("ஆற்காடு")) {
          routeBadge = `<span class="route-tag tag-arcot">📍 வழி: SH-5 ஆற்காடு பைபாஸ்</span>`;
@@ -831,7 +877,6 @@ if (showUpcomingOnly) {
          tdBus.appendChild(c);
        }
    
-       // Modal Popup Trigger Button
        const liveTrackBtn = document.createElement("button");
        liveTrackBtn.type = "button";
        liveTrackBtn.className = "live-tracker-btn";
@@ -911,7 +956,7 @@ if (showUpcomingOnly) {
    }
    
    /* =========================================================
-      8. CONTROLS, ROUTING & 3D TERMINAL MULTI-SIGN LOGIC
+      9. CONTROLS, ROUTING & 3D TERMINAL MULTI-SIGN LOGIC
       ========================================================= */
    
    function updateAllBusSigns() {
@@ -976,8 +1021,8 @@ if (showUpcomingOnly) {
    }
    
    function updateLanguageUI() {
-     if (fromEl) fromEl.placeholder = lang === "ta" ? "புறப்படும் இடம் (எ.கா: செய்யாறு)" : "e.g. Cheyyar / செய்யாறு";
-     if (toEl) toEl.placeholder = lang === "ta" ? "சேரும் இடம் (எ.கா: காஞ்சிபுரம் / ஆரணி)" : "e.g. Kanchipuram / சென்னை / Arani";
+     if (fromEl) fromEl.placeholder = lang === "ta" ? "புறப்படும் இடம் (எ.கா: Cheyyar)" : "e.g. Cheyyar";
+     if (toEl) toEl.placeholder = lang === "ta" ? "சேரும் இடம் (எ.கா: Kanchipuram)" : "e.g. Kanchipuram";
      if (searchEl) searchEl.placeholder = lang === "ta" ? "பஸ் எண் / நேரம் (எ.கா: 130, T59)" : "Filter by No (e.g. 130, 438, T59)";
    
      const nextBtn = $("next-btn");
@@ -1015,14 +1060,14 @@ if (showUpcomingOnly) {
      });
    }
    
-   function debounce(fn, delay = 150) {
+   function debounce(fn, delay = 200) {
      let timer;
      return function (...args) {
        clearTimeout(timer);
        timer = setTimeout(() => fn.apply(this, args), delay);
      };
    }
-   const debouncedRender = debounce(render, 150);
+   const debouncedRender = debounce(render, 200);
    
    fromEl.addEventListener("input", debouncedRender);
    toEl.addEventListener("input", debouncedRender);
@@ -1030,8 +1075,19 @@ if (showUpcomingOnly) {
    
    if (upcomingToggle) upcomingToggle.addEventListener("change", render);
    
-   $("clear-from-btn").addEventListener("click", () => { fromEl.value = ""; render(); });
-   $("clear-to-btn").addEventListener("click", () => { toEl.value = ""; render(); });
+   $("clear-from-btn").addEventListener("click", () => { 
+     fromEl.value = ""; 
+     const d = $("from-dropdown");
+     if (d) d.style.display = "none";
+     render(); 
+   });
+   
+   $("clear-to-btn").addEventListener("click", () => { 
+     toEl.value = ""; 
+     const d = $("to-dropdown");
+     if (d) d.style.display = "none";
+     render(); 
+   });
    
    swapBtn.addEventListener("click", () => {
      const tmp = fromEl.value;
@@ -1053,11 +1109,15 @@ if (showUpcomingOnly) {
      fromEl.value = "";
      toEl.value = "";
      searchEl.value = "";
+     const d1 = $("from-dropdown");
+     const d2 = $("to-dropdown");
+     if (d1) d1.style.display = "none";
+     if (d2) d2.style.display = "none";
      render();
    });
    
    /* =========================================================
-      9. FIND NEXT BUS CLICK ACTION
+      10. FIND NEXT BUS ACTION
       ========================================================= */
    
    $("next-btn").addEventListener("click", () => {
@@ -1156,7 +1216,7 @@ if (showUpcomingOnly) {
    }
    
    /* =========================================================
-      10. REAL-TIME AUTO UPDATE & INITIALIZATION
+      11. REAL-TIME AUTO UPDATE & INITIALIZATION
       ========================================================= */
    
    setInterval(() => {

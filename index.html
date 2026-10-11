@@ -137,9 +137,9 @@
         <label for="from-search" class="field-label">
           <span class="dot-icon green"></span> <span data-i18n="fromLabel">From / புறப்படும் இடம்</span>
         </label>
-        <div class="input-box">
-          <input type="text" id="from-search" placeholder="e.g. Cheyyar / செய்யாறு" autocomplete="off" list="from-list">
-          <datalist id="from-list"></datalist>
+        <div class="input-box autocomplete-box-wrapper">
+          <input type="text" id="from-search" placeholder="e.g. Cheyyar" autocomplete="off">
+          <div id="from-dropdown" class="custom-autocomplete-dropdown"></div>
           <button type="button" class="btn-clear-input" id="clear-from-btn" title="Clear">✕</button>
         </div>
       </div>
@@ -152,9 +152,9 @@
         <label for="to-search" class="field-label">
           <span class="dot-icon red"></span> <span data-i18n="toLabel">To / சேரும் இடம்</span>
         </label>
-        <div class="input-box">
-          <input type="text" id="to-search" placeholder="e.g. Kanchipuram / சென்னை / Arani" autocomplete="off" list="to-list">
-          <datalist id="to-list"></datalist>
+        <div class="input-box autocomplete-box-wrapper">
+          <input type="text" id="to-search" placeholder="e.g. Kanchipuram" autocomplete="off">
+          <div id="to-dropdown" class="custom-autocomplete-dropdown"></div>
           <button type="button" class="btn-clear-input" id="clear-to-btn" title="Clear">✕</button>
         </div>
       </div>
