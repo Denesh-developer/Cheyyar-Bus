@@ -1552,6 +1552,74 @@
        }
      }, 35);
    }
+   /* =========================================================
+   14. STRICT APK-ONLY IN-APP UPDATE CHECK
+   ========================================================= */
+
+// Browser alladhu Website-il FALSE aagum, Android APK kulla mattume TRUE aagum
+function isStrictlyInsideApk() {
+  const isBridgePresent = Boolean(window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function");
+  const isApkUserAgent = navigator.userAgent.includes("CheyyarBusAPK");
+  return isBridgePresent || isApkUserAgent;
+}
+
+const CURRENT_APP_VERSION = 1; // Current build number
+
+async function checkForAppUpdate() {
+  // Website / Normal Chrome browser-il open seidhaal udaney stop aagividum
+  if (!isStrictlyInsideApk()) {
+    return;
+  }
+
+  try {
+    const res = await fetch("version.json?t=" + Date.now());
+    const data = await res.json();
+
+    if (data.latestVersionCode > CURRENT_APP_VERSION) {
+      showUpdateModal(data);
+    }
+  } catch (err) {}
+}
+
+function showUpdateModal(data) {
+  // Double check: Browser-il entha kaaranathirkum modal create aagakoodathu
+  if (!isStrictlyInsideApk()) return;
+
+  const modal = document.createElement("div");
+  modal.className = "modal-backdrop";
+  modal.style.display = "flex";
+  modal.style.zIndex = "99999999";
+  modal.innerHTML = `
+    <div class="founder-modal" style="text-align: center; max-width: 320px; padding: 24px; border-radius: 20px;">
+      <div style="font-size: 40px; margin-bottom: 8px;">🚀</div>
+      <h3 style="margin: 0; font-size: 20px; color: #fff;">New Update Available!</h3>
+      <p style="font-size: 13px; color: #a9aeba; margin: 8px 0 16px; line-height: 1.4;">
+        Version ${data.latestVersionName}<br>${data.releaseNotes}
+      </p>
+      <button type="button" id="btn-update-apk" class="primary full" style="border:none; cursor:pointer; height: 42px; border-radius: 12px; font-weight: 700;">
+        Update Now
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  document.getElementById("btn-update-apk").addEventListener("click", () => {
+    modal.remove();
+    // Direct native APK download bridge trigger
+    if (window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function") {
+      window.AndroidApp.downloadAndInstallApk(data.apkUrl);
+    }
+  });
+}
+
+// App open aagi 2 seconds kazhithu check pannum
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+    if (isStrictlyInsideApk()) {
+      checkForAppUpdate();
+    }
+  }, 2000);
+});
    
    setInterval(() => {
      const now = nowMin();
