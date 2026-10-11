@@ -2016,77 +2016,100 @@ function scrollToBusResults() {
    }
 
 /* =========================================================
-   15. IN-APP UPDATE ENGINE (OLD & NEW APK DETECTION)
+   15. IN-APP UPDATE ENGINE (OLD & NEW APK COMPATIBLE FIX)
    ========================================================= */
 
-function isInsideAnyApk() {
-  const ua = navigator.userAgent || "";
-  const isNewApk = Boolean(window.AndroidApp) || ua.includes("CheyyarBusAPK");
-  const isAndroid = /android/i.test(ua);
-  const isWebView = ua.includes("; wv") || (isAndroid && ua.includes("Version/"));
-
-  return isNewApk || isWebView;
-}
-
-const CURRENT_APP_VERSION = 1;
-
-async function checkForAppUpdate() {
-  if (!isInsideAnyApk()) return;
-
-  let currentInstalledVersion = CURRENT_APP_VERSION;
-  if (window.AndroidApp && typeof window.AndroidApp.getAppVersionCode === "function") {
-    currentInstalledVersion = window.AndroidApp.getAppVersionCode();
+   function isInsideAnyApk() {
+    const ua = navigator.userAgent || "";
+    const isNewApk = Boolean(window.AndroidApp) || ua.includes("CheyyarBusAPK");
+    const isAndroid = /android/i.test(ua);
+    const isWebView = ua.includes("; wv") || (isAndroid && ua.includes("Version/"));
+  
+    return isNewApk || isWebView;
   }
-
-  try {
-    const res = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
-    if (!res.ok) return;
-
-    const data = await res.json();
-    if (Number(data.latestVersionCode) > currentInstalledVersion) {
-      showUpdateModal(data);
+  
+  // Pazhaiya APK-kku default version 1 dhaan irukkanum!
+  const CURRENT_APP_VERSION = 1;
+  
+  async function checkForAppUpdate() {
+    if (!isInsideAnyApk()) return;
+  
+    // New APK irundhaa native version code edukkum, pazhaiya APK-kku 1 nu edukkum
+    let currentInstalledVersion = CURRENT_APP_VERSION;
+    if (window.AndroidApp && typeof window.AndroidApp.getAppVersionCode === "function") {
+      try {
+        currentInstalledVersion = window.AndroidApp.getAppVersionCode();
+      } catch (e) {
+        currentInstalledVersion = CURRENT_APP_VERSION;
+      }
     }
-  } catch (err) {
-    console.error("Update check error:", err);
+  
+    try {
+      // Cache bust query pottu latest version.json fetch seigirom
+      const res = await fetch("version.json?nocache=" + Date.now(), { 
+        cache: "no-store",
+        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" }
+      });
+      if (!res.ok) return;
+  
+      const data = await res.json();
+      console.log("App Version Check -> Installed:", currentInstalledVersion, "Server Latest:", data.latestVersionCode);
+  
+      if (Number(data.latestVersionCode) > Number(currentInstalledVersion)) {
+        showUpdateModal(data);
+      }
+    } catch (err) {
+      console.error("Update check error:", err);
+    }
   }
-}
-
-function showUpdateModal(data) {
-  if (document.getElementById("update-modal-backdrop")) return;
-
-  const modal = document.createElement("div");
-  modal.id = "update-modal-backdrop";
-  modal.className = "modal-backdrop";
-  modal.style.cssText = "display: flex !important; position: fixed !important; inset: 0 !important; background: rgba(0,0,0,0.85) !important; z-index: 99999999 !important; justify-content: center !important; align-items: center !important; padding: 20px !important;";
-
-  modal.innerHTML = `
-    <div style="background: #141721; border: 1px solid rgba(255, 92, 53, 0.4); border-radius: 20px; padding: 24px; max-width: 320px; width: 100%; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.8);">
-      <div style="font-size: 42px; margin-bottom: 8px;">🚀</div>
-      <h3 style="margin: 0; font-size: 20px; color: #ffffff; font-weight: 800;">New Update Available!</h3>
-      <p style="font-size: 13px; color: #a9aeba; margin: 10px 0 18px; line-height: 1.5;">
-        Version <strong>${data.latestVersionName || "1.1.0"}</strong><br>
-        ${data.releaseNotes || "Performance improvements & new features."}
-      </p>
-      <button type="button" id="btn-update-apk" style="width: 100%; height: 44px; background: linear-gradient(135deg, #ff5c35, #ff7a45); color: #fff; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; font-size: 15px; box-shadow: 0 6px 18px rgba(255, 92, 53, 0.4);">
-        Update Now
-      </button>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  document.getElementById("btn-update-apk").addEventListener("click", () => {
-    if (window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function") {
-      window.AndroidApp.downloadAndInstallApk(data.apkUrl);
+  
+  function showUpdateModal(data) {
+    if (document.getElementById("update-modal-backdrop")) return;
+  
+    const modal = document.createElement("div");
+    modal.id = "update-modal-backdrop";
+    modal.className = "modal-backdrop";
+    modal.style.cssText = "display: flex !important; position: fixed !important; inset: 0 !important; background: rgba(0,0,0,0.85) !important; z-index: 99999999 !important; justify-content: center !important; align-items: center !important; padding: 20px !important;";
+  
+    modal.innerHTML = `
+      <div style="background: #141721; border: 1px solid rgba(255, 92, 53, 0.4); border-radius: 20px; padding: 24px; max-width: 320px; width: 100%; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.8);">
+        <div style="font-size: 42px; margin-bottom: 8px;">🚀</div>
+        <h3 style="margin: 0; font-size: 20px; color: #ffffff; font-weight: 800;">New Update Available!</h3>
+        <p style="font-size: 13px; color: #a9aeba; margin: 10px 0 18px; line-height: 1.5;">
+          Version <strong>${data.latestVersionName || "1.1.0"}</strong><br>
+          ${data.releaseNotes || "Performance improvements & new features."}
+        </p>
+        <button type="button" id="btn-update-apk" style="width: 100%; height: 44px; background: linear-gradient(135deg, #ff5c35, #ff7a45); color: #fff; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; font-size: 15px; box-shadow: 0 6px 18px rgba(255, 92, 53, 0.4);">
+          Update Now
+        </button>
+      </div>
+    `;
+  
+    document.body.appendChild(modal);
+  
+    document.getElementById("btn-update-apk").addEventListener("click", () => {
+      // 1. New APK: Android native background download manager vazhiya download aagum
+      if (window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function") {
+        window.AndroidApp.downloadAndInstallApk(data.apkUrl);
+        modal.remove();
+        return;
+      }
+  
+      // 2. Old APK: WebView download listener illaiyenbathal Chrome Browser-kku Intent trigger seigirom
+      const cleanUrl = data.apkUrl.replace(/^https?:\/\//, "");
+      const intentUrl = `intent://${cleanUrl}#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
+  
+      try {
+        window.location.href = intentUrl;
+      } catch (e) {
+        window.open(data.apkUrl, "_system");
+      }
+  
       modal.remove();
-    } else {
-      window.location.href = data.apkUrl;
-    }
-  });
-}
-
-setTimeout(checkForAppUpdate, 1500);
-
+    });
+  }
+  
+  setTimeout(checkForAppUpdate, 1500);
 /* =========================================================
    16. FIRESTORE REAL-TIME ATOMIC VISITOR COUNTER
    ========================================================= */
