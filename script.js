@@ -1574,7 +1574,7 @@ function isInsideAnyApk() {
   return isNewApk || isWebView;
 }
 
-const CURRENT_APP_VERSION = 1; // Pazhaiya APK version code
+const CURRENT_APP_VERSION = 2; // Pazhaiya APK version code
 
 async function checkForAppUpdate() {
   // Website alladhu PC Chrome browser-il open seidhaal ingeye stop aagividum
