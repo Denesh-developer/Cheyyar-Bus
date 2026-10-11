@@ -2079,40 +2079,24 @@ function scrollToBusResults() {
           Version <strong>${data.latestVersionName || "1.1.0"}</strong><br>
           ${data.releaseNotes || "Performance improvements & new features."}
         </p>
-        <button type="button" id="btn-update-apk" style="width: 100%; height: 44px; background: linear-gradient(135deg, #ff5c35, #ff7a45); color: #fff; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; font-size: 15px; box-shadow: 0 6px 18px rgba(255, 92, 53, 0.4);">
+        
+        <!-- Direct Native HTML Anchor (Browser Auto-Triggers) -->
+        <a href="${data.apkUrl}" id="btn-update-apk" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 44px; background: linear-gradient(135deg, #ff5c35, #ff7a45); color: #fff; font-weight: 700; border-radius: 12px; font-size: 15px; text-decoration: none; box-shadow: 0 6px 18px rgba(255, 92, 53, 0.4);">
           Update Now
-        </button>
+        </a>
       </div>
     `;
   
     document.body.appendChild(modal);
   
-    document.getElementById("btn-update-apk").addEventListener("click", () => {
-      // 1. New APK: Android native background download manager
+    // New APK irundhaa mattum background native download edukkum
+    document.getElementById("btn-update-apk").addEventListener("click", (e) => {
       if (window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function") {
+        e.preventDefault();
         window.AndroidApp.downloadAndInstallApk(data.apkUrl);
         modal.remove();
-        return;
       }
-  
-      // 2. Old APK: ERR_UNKNOWN_URL_SCHEME varaadha fail-safe download trigger
-      const targetUrl = data.apkUrl;
-
-      // Method A: Hidden download anchor tag trigger
-      const a = document.createElement("a");
-      a.href = targetUrl;
-      a.setAttribute("download", "cheyyar-bus.apk");
-      a.setAttribute("target", "_blank");
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      // Method B: WebView fallback
-      setTimeout(() => {
-        window.open(targetUrl, "_system");
-      }, 200);
-  
-      modal.remove();
+      // Old APK-kkupreventDefault() pannaadheergal, a tag-e direct-aa velai seiyattum!
     });
   }
   
