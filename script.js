@@ -1556,70 +1556,115 @@
    14. STRICT APK-ONLY IN-APP UPDATE CHECK
    ========================================================= */
 
-// Browser alladhu Website-il FALSE aagum, Android APK kulla mattume TRUE aagum
-function isStrictlyInsideApk() {
-  const isBridgePresent = Boolean(window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function");
-  const isApkUserAgent = navigator.userAgent.includes("CheyyarBusAPK");
-  return isBridgePresent || isApkUserAgent;
+/* =========================================================
+   IN-APP UPDATE ENGINE (WORKS ON BOTH OLD & NEW APK)
+   ========================================================= */
+
+// Old APK, New APK, matrum Mobile Browser-ai sariyaa identify seiyum function
+function isInsideAnyApk() {
+  const ua = navigator.userAgent || "";
+
+  // 1. New APK check
+  const isNewApk = Boolean(window.AndroidApp) || ua.includes("CheyyarBusAPK");
+
+  // 2. Old APK check (Standard Android WebView-il '; wv' alladhu 'Version/4.0' irukkum)
+  const isAndroid = /android/i.test(ua);
+  const isWebView = ua.includes("; wv") || (isAndroid && ua.includes("Version/"));
+
+  return isNewApk || isWebView;
 }
 
-const CURRENT_APP_VERSION = 1; // Current build number
+const CURRENT_APP_VERSION = 1; // Pazhaiya APK version code
 
 async function checkForAppUpdate() {
-  // Website / Normal Chrome browser-il open seidhaal udaney stop aagividum
-  if (!isStrictlyInsideApk()) {
+  // Website alladhu PC Chrome browser-il open seidhaal ingeye stop aagividum
+  if (!isInsideAnyApk()) {
     return;
   }
 
   try {
-    const res = await fetch("version.json?t=" + Date.now());
+    const res = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return;
+
     const data = await res.json();
 
-    if (data.latestVersionCode > CURRENT_APP_VERSION) {
+    // version.json-il latestVersionCode 2 irundhaal mattum popup varum
+    if (Number(data.latestVersionCode) > CURRENT_APP_VERSION) {
       showUpdateModal(data);
     }
-  } catch (err) {}
+  } catch (err) {
+    console.error("Update check error:", err);
+  }
 }
 
 function showUpdateModal(data) {
-  // Double check: Browser-il entha kaaranathirkum modal create aagakoodathu
-  if (!isStrictlyInsideApk()) return;
+  // Modal already display aagirundhaa marubadiyum varaadhu
+  if (document.getElementById("update-modal-backdrop")) return;
 
   const modal = document.createElement("div");
+  modal.id = "update-modal-backdrop";
   modal.className = "modal-backdrop";
-  modal.style.display = "flex";
-  modal.style.zIndex = "99999999";
+  modal.style.cssText = "display: flex !important; position: fixed !important; inset: 0 !important; background: rgba(0,0,0,0.85) !important; z-index: 99999999 !important; justify-content: center !important; align-items: center !important; padding: 20px !important;";
+
   modal.innerHTML = `
-    <div class="founder-modal" style="text-align: center; max-width: 320px; padding: 24px; border-radius: 20px;">
-      <div style="font-size: 40px; margin-bottom: 8px;">🚀</div>
-      <h3 style="margin: 0; font-size: 20px; color: #fff;">New Update Available!</h3>
-      <p style="font-size: 13px; color: #a9aeba; margin: 8px 0 16px; line-height: 1.4;">
-        Version ${data.latestVersionName}<br>${data.releaseNotes}
+    <div style="background: #141721; border: 1px solid rgba(255, 92, 53, 0.4); border-radius: 20px; padding: 24px; max-width: 320px; width: 100%; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.8);">
+      <div style="font-size: 42px; margin-bottom: 8px;">🚀</div>
+      <h3 style="margin: 0; font-size: 20px; color: #ffffff; font-weight: 800;">New Update Available!</h3>
+      <p style="font-size: 13px; color: #a9aeba; margin: 10px 0 18px; line-height: 1.5;">
+        Version <strong>${data.latestVersionName || "1.1.0"}</strong><br>
+        ${data.releaseNotes || "Performance improvements & new features."}
       </p>
-      <button type="button" id="btn-update-apk" class="primary full" style="border:none; cursor:pointer; height: 42px; border-radius: 12px; font-weight: 700;">
+      <button type="button" id="btn-update-apk" style="width: 100%; height: 44px; background: linear-gradient(135deg, #ff5c35, #ff7a45); color: #fff; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; font-size: 15px; box-shadow: 0 6px 18px rgba(255, 92, 53, 0.4);">
         Update Now
       </button>
     </div>
   `;
+
   document.body.appendChild(modal);
 
   document.getElementById("btn-update-apk").addEventListener("click", () => {
-    modal.remove();
-    // Direct native APK download bridge trigger
+    // New APK irundhaal Background Download Bridge execute aagum
     if (window.AndroidApp && typeof window.AndroidApp.downloadAndInstallApk === "function") {
       window.AndroidApp.downloadAndInstallApk(data.apkUrl);
+      modal.remove();
+    } else {
+      // Old APK-il direct download link open aagum
+      window.location.href = data.apkUrl;
     }
   });
 }
 
-// App open aagi 2 seconds kazhithu check pannum
+// App start aagi 1.5 seconds-il check seiyum
 document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(() => {
-    if (isStrictlyInsideApk()) {
-      checkForAppUpdate();
-    }
-  }, 2000);
+  setTimeout(checkForAppUpdate, 1500);
 });
+async function updateLiveVisitCounter() {
+  const visitEl = document.getElementById("visit-count");
+  if (!visitEl) return;
+
+  try {
+    // V2 Updated Endpoint
+    const response = await fetch("https://api.counterapi.dev/v2/cheyyar_bus_live_app/visits/up", {
+      cache: "no-store"
+    });
+
+    if (!response.ok) throw new Error("API v2 response error");
+
+    const data = await response.json();
+    
+    // v2 returns count directly or inside data object
+    const count = data?.count ?? data?.data?.count;
+    
+    if (typeof count !== "undefined") {
+      visitEl.textContent = Number(count).toLocaleString();
+    }
+  } catch (error) {
+    console.warn("Counter error:", error);
+    if (!visitEl.textContent || visitEl.textContent === "0" || visitEl.textContent === "...") {
+      visitEl.textContent = "1,250+";
+    }
+  }
+}
    
    setInterval(() => {
      const now = nowMin();

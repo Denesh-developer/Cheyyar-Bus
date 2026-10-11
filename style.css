@@ -2757,3 +2757,42 @@ body.app-ready .ai-avatar-widget {
     width: 200px !important;
   }
 }
+/* =========================================================
+   LIVE STATS: TOTAL VISITS CARD (DASHBOARD MATCH)
+   ========================================================= */
+
+   #visits-stat-card {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    min-width: 90px;
+  }
+  
+  #visit-count {
+    font-family: inherit;
+    font-size: 28px !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+    color: #ffffff !important;
+    letter-spacing: -0.5px;
+  }
+  
+  #visits-stat-card .stat-label {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #8b92a5 !important;
+    letter-spacing: 0.8px !important;
+    text-transform: uppercase !important;
+    margin-top: 4px !important;
+  }
+  
+  /* Mobile Screen Responsive */
+  @media (max-width: 768px) {
+    #visit-count {
+      font-size: 22px !important;
+    }
+    #visits-stat-card .stat-label {
+      font-size: 9.5px !important;
+    }
+  }
