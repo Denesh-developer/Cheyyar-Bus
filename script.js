@@ -2065,6 +2065,10 @@ function scrollToBusResults() {
   
   function showUpdateModal(data) {
     if (document.getElementById("update-modal-backdrop")) return;
+
+    // New APK (native bridge irukku) -> in-app update. Old APK -> "App expired" + Chrome link.
+    const hasNativeUpdater = Boolean(window.AndroidApp) && typeof window.AndroidApp.downloadAndInstallApk === "function";
+    if (!hasNativeUpdater) { showExpiredModal(data); return; }
   
     const modal = document.createElement("div");
     modal.id = "update-modal-backdrop";
@@ -2113,6 +2117,82 @@ function scrollToBusResults() {
     });
   }
   
+  /* ---------- OLD APK: "App expired" screen ---------- */
+  function legacyCopyText(text) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) { return false; }
+  }
+
+  function copyTextSafe(text) {
+    return new Promise((resolve) => {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => resolve(true)).catch(() => resolve(legacyCopyText(text)));
+          return;
+        }
+      } catch (e) {}
+      resolve(legacyCopyText(text));
+    });
+  }
+
+  function showExpiredModal(data) {
+    if (document.getElementById("update-modal-backdrop")) return;
+    // Chrome-la open panna easy-aa irukka, short download page link irundha adhai use pannum
+    const url = data.downloadPageUrl || data.apkUrl || "";
+    if (!url) return;
+
+    const modal = document.createElement("div");
+    modal.id = "update-modal-backdrop";
+    modal.className = "modal-backdrop";
+    modal.style.cssText = "display: flex !important; position: fixed !important; inset: 0 !important; background: rgba(0,0,0,0.92) !important; z-index: 99999999 !important; justify-content: center !important; align-items: center !important; padding: 20px !important;";
+
+    modal.innerHTML = `
+      <div style="background: #141721; border: 1px solid rgba(255, 92, 53, 0.4); border-radius: 20px; padding: 24px; max-width: 340px; width: 100%; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.8);">
+        <div style="font-size: 42px; margin-bottom: 8px;">⚠️</div>
+        <h3 style="margin: 0; font-size: 20px; color: #ffffff; font-weight: 800;">New Update Available</h3>
+        <p style="font-size: 14px; color: #a9aeba; margin: 12px 0 14px; line-height: 1.6;">
+          This APK is expired.<br>
+          Download the new APK from the link below.<br>
+          Contact developer <strong style="color:#ffffff;">Denesh</strong> for help.
+        </p>
+        <div id="expired-link" style="background: #0b0d14; border: 1px dashed rgba(255,92,53,0.5); color: #ffb199; border-radius: 10px; padding: 10px; font-size: 12px; word-break: break-all; user-select: all; -webkit-user-select: all; margin-bottom: 14px;"></div>
+        <button id="btn-expired-open" type="button" style="display:flex; align-items:center; justify-content:center; width:100%; height:44px; border:none; background: linear-gradient(135deg, #ff5c35, #ff7a45); color:#fff; font-weight:700; border-radius:12px; font-size:15px; box-shadow: 0 6px 18px rgba(255, 92, 53, 0.4);">
+          Copy Download Link
+        </button>
+        <p id="expired-hint" style="font-size: 12px; color: #a9aeba; margin: 12px 0 0; line-height: 1.5;"></p>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById("expired-link").textContent = url;
+    const hint = document.getElementById("expired-hint");
+
+    document.getElementById("btn-expired-open").addEventListener("click", async () => {
+      // Future APK-la openExternal irundha direct-aa Chrome/browser open aagum
+      try {
+        if (window.AndroidApp && typeof window.AndroidApp.openExternal === "function") {
+          window.AndroidApp.openExternal(url);
+          return;
+        }
+      } catch (err) { console.error(err); }
+
+      // Pazhaiya APK-la WebView-kulla irundhu Chrome open panna mudiyaadhu -> link copy panni kaattrom
+      const ok = await copyTextSafe(url);
+      hint.textContent = ok
+        ? "Link copied \u2705 Open Chrome, paste it in the address bar and download."
+        : "Long-press the link above to copy it, then paste it in Chrome.";
+    });
+  }
+
   setTimeout(checkForAppUpdate, 1500);
 /* =========================================================
    16. FIRESTORE REAL-TIME ATOMIC VISITOR COUNTER
