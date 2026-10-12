@@ -2795,4 +2795,748 @@ body.app-ready .ai-avatar-widget {
     #visits-stat-card .stat-label {
       font-size: 9.5px !important;
     }
+  }/* =========================================================
+   LAG-FREE CINEMATIC SPLASH SCREEN (SIDE-BUS & CHEYYARBUS)
+   ========================================================= */
+
+.cb-splash-viewport {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999999;
+  background: #050609;
+  background-image: 
+    radial-gradient(rgba(255, 92, 53, 0.12) 1px, transparent 1px),
+    radial-gradient(800px 500px at 50% 50%, rgba(255, 92, 53, 0.08), transparent 75%);
+  background-size: 28px 28px, 100% 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  will-change: opacity, transform;
+}
+
+/* Curtain Split panels */
+.cb-curtain {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: #050609;
+  z-index: 50;
+  pointer-events: none;
+  transition: transform 0.75s cubic-bezier(0.77, 0, 0.175, 1);
+  will-change: transform;
+}
+
+.cb-curtain-top { top: 0; transform: translate3d(0, 0, 0); }
+.cb-curtain-bottom { bottom: 0; transform: translate3d(0, 0, 0); }
+
+/* Center Gold/Orange Laser */
+.cb-split-laser {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ff5c35, #ff8a52, #ff5c35, transparent);
+  box-shadow: 0 0 16px rgba(255, 92, 53, 0.8);
+  z-index: 60;
+  opacity: 0;
+  transform: translateY(-50%) scaleX(0);
+  transition: transform 0.35s ease, opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.cb-stage {
+  position: relative;
+  z-index: 55;
+  width: 90%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+/* 1. Large Side-View Vector Bus (Theme Match) */
+.cb-bus-lane {
+  position: relative;
+  width: 100%;
+  height: 64px;
+  margin-bottom: 10px;
+  overflow: visible;
+}
+
+.cb-bus-side-unit {
+  position: absolute;
+  top: 50%;
+  left: -25%;
+  transform: translate3d(-50%, -50%, 0);
+  display: flex;
+  align-items: center;
+  transition: left 1.1s cubic-bezier(0.2, 0.8, 0.25, 1);
+  will-change: left;
+}
+
+.cb-bus-side-unit.arrived {
+  left: 50%;
+}
+
+.cb-side-bus {
+  position: relative;
+  width: 115px;
+  height: 52px;
+  filter: drop-shadow(0 6px 14px rgba(255, 92, 53, 0.55));
+}
+
+.s-bus-roof {
+  position: absolute;
+  top: -3px;
+  left: 10px;
+  right: 12px;
+  height: 5px;
+  background: #ffffff;
+  border-radius: 4px 4px 0 0;
+}
+
+.s-bus-body {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #b91c1c 0%, #b91c1c 58%, #fbbf24 59%, #fbbf24 100%);
+  border-radius: 12px 18px 6px 6px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.s-bus-windows {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  gap: 5px;
+}
+
+.s-bus-windows .w {
+  flex: 1;
+  height: 17px;
+  background: #0f1523;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.s-bus-windows .w.front {
+  border-radius: 3px 9px 3px 3px;
+  background: #192132;
+}
+
+.s-bus-stripe {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+  background: #ffffff;
+  opacity: 0.85;
+}
+
+.s-bus-light {
+  position: absolute;
+  right: 2px;
+  bottom: 7px;
+  width: 6px;
+  height: 6px;
+  background: #ffea79;
+  border-radius: 50%;
+  box-shadow: 0 0 10px 3px #ffea79;
+}
+
+.s-wheel {
+  position: absolute;
+  bottom: -8px;
+  width: 20px;
+  height: 20px;
+  background: #181a20;
+  border-radius: 50%;
+  border: 3.5px solid #fbbf24;
+  box-shadow: inset 0 0 0 2px #fff;
+  z-index: 5;
+  animation: wheelRoll 0.4s linear infinite;
+}
+
+.w-back { left: 14px; }
+.w-front { right: 14px; }
+
+@keyframes wheelRoll {
+  100% { transform: rotate(360deg); }
+}
+
+.cb-side-light-beam {
+  position: absolute;
+  left: 105px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 120px;
+  height: 38px;
+  background: linear-gradient(90deg, rgba(255, 234, 121, 0.5) 0%, rgba(255, 92, 53, 0) 100%);
+  clip-path: polygon(0 40%, 100% 0%, 100% 100%, 0 60%);
+  pointer-events: none;
+}
+
+/* 2. Typography: CheyyarBus */
+.cb-title-mask {
+  overflow: hidden;
+  padding-bottom: 4px;
+}
+
+.cb-title-holder {
+  transform: translate3d(0, 110%, 0);
+  opacity: 0;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+  will-change: transform, opacity;
+}
+
+.cb-title-holder.revealed {
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+}
+
+.cb-main-heading {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(48px, 9vw, 80px);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -1.5px;
+  line-height: 1;
+}
+
+.cb-main-heading span {
+  background: linear-gradient(135deg, #ff5c35 0%, #ff8a52 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.cb-tamil-sub {
+  margin: 10px 0 0;
+  font-family: var(--font-ui);
+  font-size: clamp(14px, 2.5vw, 19px);
+  color: #ab7f3b;
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+
+/* 3. Horizon Center Line */
+.cb-horizon-line {
+  width: 100%;
+  max-width: 580px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 92, 53, 0.4) 20%, rgba(255, 138, 82, 0.6) 50%, rgba(255, 92, 53, 0.4) 80%, transparent);
+  margin: 18px 0 24px;
+}
+
+/* 4. Town Badges Shuffle */
+.cb-shuffler-rack {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cb-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 34px;
+  border-radius: 7px;
+  background: #0d1017;
+  border: 1px solid rgba(255, 92, 53, 0.32);
+  color: #ff8a52;
+  font-family: "Space Grotesk", monospace;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+  transition: transform 0.12s ease, color 0.12s ease;
+  will-change: transform;
+}
+
+.cb-box.flip {
+  transform: translate3d(0, -3px, 0) scale(1.06);
+  border-color: #ff5c35;
+  color: #fff;
+}
+
+/* 5. Progress Wire & Nodes */
+.cb-track-dock {
+  width: 100%;
+  max-width: 520px;
+}
+
+.cb-progress-wire {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.cb-progress-filament {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff5c35, #ff8a52);
+  box-shadow: 0 0 12px rgba(255, 92, 53, 0.8);
+  border-radius: 4px;
+  transition: width 0.05s linear;
+}
+
+.cb-node {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #050609;
+  border: 2px solid rgba(255, 92, 53, 0.6);
+  z-index: 2;
+}
+.cb-node.n1 { left: 0%; }
+.cb-node.n2 { left: 33%; }
+.cb-node.n3 { left: 66%; }
+.cb-node.n4 { left: 100%; }
+
+/* 6. Meta Status & Counter */
+.cb-meta-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cb-status-log {
+  color: #a9aeba;
+  letter-spacing: 0.3px;
+}
+
+.cb-counter-display {
+  font-family: "Space Grotesk", monospace;
+  color: #ff8a52;
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px rgba(255, 92, 53, 0.5);
+}
+
+/* Exit Split Effect */
+.cb-splash-viewport.exit-stage .cb-stage {
+  opacity: 0;
+  transform: translate3d(0, -6px, 0) scale(0.98);
+}
+
+.cb-splash-viewport.exit-stage .cb-split-laser {
+  opacity: 1;
+  transform: translateY(-50%) scaleX(1);
+}
+
+.cb-splash-viewport.curtain-open .cb-curtain-top {
+  transform: translate3d(0, -100%, 0);
+}
+
+.cb-splash-viewport.curtain-open .cb-curtain-bottom {
+  transform: translate3d(0, 100%, 0);
+}
+
+.cb-splash-viewport.curtain-open .cb-split-laser {
+  opacity: 0;
+  transform: translateY(-50%) scaleX(1.3);
+}
+/* =========================================================
+   PANATRAIL-STYLE OPERATIONAL NOTICE & COMMUNITY GUIDE CARDS
+   ========================================================= */
+
+   .cheyyar-notice-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 18px;
+    width: 100%;
+    max-width: 1240px;
+    margin: 24px auto 14px;
   }
+  
+  .notice-card {
+    background: #090d0b;
+    border: 1px solid rgba(255, 92, 53, 0.16);
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  }
+  
+  /* Left Card */
+  .notice-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .notice-icon {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 92, 53, 0.12);
+    border: 1px solid rgba(255, 92, 53, 0.35);
+    border-radius: 8px;
+    color: #ff5c35;
+    font-size: 15px;
+  }
+  
+  .notice-card-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #f7f3e8;
+  }
+  
+  .notice-card-header h3 span {
+    color: #ab7f3b;
+  }
+  
+  .notice-desc {
+    margin: 0 0 18px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: #8c93a4;
+  }
+  
+  .notice-subhead {
+    font-size: 11px;
+    font-weight: 700;
+    color: #656d7e;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+  
+  .notice-pills-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .n-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #0d1210;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #a9aeba;
+  }
+  
+  .n-pill .p-dot {
+    font-size: 11px;
+  }
+  
+  /* Right Card */
+  .community-card {
+    justify-content: space-between;
+  }
+  
+  .comm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 12px;
+    background: rgba(47, 214, 143, 0.08);
+    border: 1px solid rgba(47, 214, 143, 0.25);
+    border-radius: 999px;
+    color: #2fd68f;
+    font-size: 11px;
+    font-weight: 700;
+    width: fit-content;
+    margin-bottom: 14px;
+  }
+  
+  .comm-title {
+    margin: 0 0 8px;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: #f7f3e8;
+  }
+  
+  .comm-desc {
+    margin: 0 0 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #8c93a4;
+  }
+  
+  .comm-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  }
+  
+  .comm-lbl {
+    display: block;
+    font-size: 11px;
+    color: #656d7e;
+    margin-bottom: 2px;
+  }
+  
+  .comm-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  
+  .comm-heart {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    background: #0d1210;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: transform 0.2s ease;
+  }
+  
+  .comm-heart:hover {
+    transform: scale(1.1);
+    border-color: #ff5c35;
+  }
+  
+  @media (max-width: 860px) {
+    .cheyyar-notice-grid {
+      grid-template-columns: 1fr;
+      margin: 18px 10px;
+      width: calc(100% - 20px);
+    }
+  }/* =========================================================
+   CHEYYAR BUS - EMBER THEME OPERATIONAL & COMMUNITY CARDS
+   ========================================================= */
+
+.cheyyar-notice-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 18px;
+  width: 100%;
+  max-width: 1240px;
+  margin: 10px auto 20px;
+}
+
+/* Card Outer with Ember Gradient Border Effect */
+.notice-card {
+  position: relative;
+  background: 
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(145deg, rgba(255, 92, 53, 0.4), var(--border) 40%, rgba(139, 92, 246, 0.25)) border-box;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-soft), var(--inner-highlight);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+
+/* Left Card: Operational Notice */
+.notice-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.notice-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 92, 53, 0.12);
+  border: 1px solid rgba(255, 92, 53, 0.35);
+  border-radius: 12px;
+  color: var(--primary);
+  font-size: 16px;
+  box-shadow: 0 4px 12px var(--primary-glow);
+  flex-shrink: 0;
+}
+
+.notice-card-header h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.notice-card-header h3 span {
+  color: var(--primary-2);
+}
+
+.notice-desc {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-soft);
+}
+
+.notice-subhead {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  margin-bottom: 10px;
+}
+
+.notice-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.n-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-soft);
+  transition: all 0.2s var(--ease-soft);
+}
+
+.n-pill:hover {
+  background: var(--card-3);
+  border-color: rgba(255, 92, 53, 0.4);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.n-pill .p-dot {
+  font-size: 11px;
+}
+
+/* Right Card: Community Transit Guide */
+.community-card {
+  justify-content: space-between;
+}
+
+.comm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 13px;
+  background: rgba(47, 214, 143, 0.1);
+  border: 1px solid rgba(47, 214, 143, 0.3);
+  border-radius: 999px;
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  width: fit-content;
+  margin-bottom: 14px;
+}
+
+.comm-title {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: var(--text);
+}
+
+.comm-desc {
+  margin: 0 0 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+
+.comm-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border-light);
+}
+
+.comm-lbl {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.comm-name {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--primary-2);
+}
+
+.comm-heart {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: transform 0.2s var(--ease), border-color 0.2s, background 0.2s;
+}
+
+.comm-heart:hover {
+  transform: scale(1.08);
+  border-color: var(--primary);
+  background: rgba(255, 92, 53, 0.12);
+}
+
+/* Mobile Responsive */
+@media (max-width: 860px) {
+  .cheyyar-notice-grid {
+    grid-template-columns: 1fr;
+    margin: 14px 0 20px;
+    gap: 14px;
+  }
+  
+  .notice-card {
+    padding: 20px;
+    border-radius: 20px;
+  }
+}

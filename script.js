@@ -929,6 +929,7 @@
        });
    
        tdBus.appendChild(liveTrackBtn);
+       if (window.Dash && Dash.makeTimesButton) tdBus.appendChild(Dash.makeTimesButton(r));
    
        const tdFrom = document.createElement("td");
        tdFrom.className = "td-from";
@@ -1983,38 +1984,121 @@ function scrollToBusResults() {
      }
    }, { once: true });
    
-   /* =========================================================
-      14. APP LOADING & INITIALIZATION
-      ========================================================= */
-   
-   function initLoadingScreen() {
-     const splashEl = document.getElementById("app-loading-screen");
-     const fillEl = document.getElementById("progress-fill");
-     const numEl = document.getElementById("progress-num");
-     if (!splashEl || !fillEl || !numEl) return;
-   
-     let progress = 0;
-     const interval = setInterval(() => {
-       progress += Math.floor(Math.random() * 4) + 2;
-       if (progress >= 100) {
-         progress = 100;
-         clearInterval(interval);
-         fillEl.style.width = "100%";
-         numEl.textContent = "100%";
-         setTimeout(() => {
-           splashEl.classList.add("loaded");
-           setTimeout(() => {
-             splashEl.style.display = "none";
-             document.body.classList.add("app-ready");
-           }, 500);
-         }, 400);
-       } else {
-         fillEl.style.width = progress + "%";
-         numEl.textContent = progress + "%";
-       }
-     }, 35);
-   }
 
+  /* =========================================================
+   PANATRAIL STYLE SCRAMBLE LETTERS + 3-SEC LOADING ENGINE
+   ========================================================= */
+
+function initLoadingScreen() {
+  const splashEl = document.getElementById("app-loading-screen");
+  const busUnit = document.getElementById("cb-bus-unit");
+  const titleHolder = document.getElementById("cb-title-holder");
+  const shufflerRack = document.getElementById("cb-shuffler-rack");
+  const fillEl = document.getElementById("progress-fill");
+  const numEl = document.getElementById("progress-num");
+  const statusLbl = document.getElementById("splash-status-lbl");
+
+  if (!splashEl || !fillEl || !numEl) return;
+
+  // 1. Bus smooth aayi center-il ethunnu
+  setTimeout(() => {
+    if (busUnit) busUnit.classList.add("arrived");
+  }, 100);
+
+  // 2. CheyyarBus text reveal aakunnu
+  setTimeout(() => {
+    if (titleHolder) titleHolder.classList.add("revealed");
+  }, 500);
+
+  // 3. Random alphabet generator (empty box-ukal ozhivaakkaan)
+  const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const getRandomChar = () => CHARS[Math.floor(Math.random() * CHARS.length)];
+
+  // Sthalangalude perukal (Target towns)
+  const towns = [
+    "CHEYYAR",
+    "VELLORE",
+    "KANCHIPURAM",
+    "ARANI",
+    "VANDAVASI",
+    "CHEYYAR"
+  ];
+  let townIdx = 0;
+  const boxes = shufflerRack ? shufflerRack.querySelectorAll(".cb-box") : [];
+  const TOTAL_BOXES = boxes.length; // 11 boxes
+
+  // Box-ukal eppozhum letter-ukal kondu niranju nilkkum (empty aakilla)
+  const shuffleInterval = setInterval(() => {
+    townIdx = (townIdx + 1) % towns.length;
+    const currentWord = towns[townIdx];
+
+    for (let i = 0; i < TOTAL_BOXES; i++) {
+      if (i < currentWord.length) {
+        // Sthalathinte aksharam
+        boxes[i].textContent = currentWord[i];
+      } else {
+        // Baakki ulla box-ukalil random letter (Panatrail style)
+        boxes[i].textContent = getRandomChar();
+      }
+    }
+  }, 220); // Fast shuffle
+
+  // Status updates
+  const statusStages = [
+    { at: 15, text: "Connecting Cheyyar Transit Network…" },
+    { at: 45, text: "Syncing Real-time Route Schedules…" },
+    { at: 75, text: "Loading Active Bus Timetable…" },
+    { at: 96, text: "Welcome Aboard!" }
+  ];
+
+  // 4. Exact 3 Seconds (3000ms) Progress Calculation
+  const totalDuration = 3000;
+  const startTime = performance.now();
+
+  function runProgress(now) {
+    const elapsed = now - startTime;
+    let progress = Math.min(100, (elapsed / totalDuration) * 100);
+    const rounded = Math.floor(progress);
+
+    fillEl.style.width = rounded + "%";
+    numEl.textContent = rounded + "%";
+
+    if (statusLbl) {
+      for (let i = statusStages.length - 1; i >= 0; i--) {
+        if (rounded >= statusStages[i].at) {
+          statusLbl.textContent = statusStages[i].text;
+          break;
+        }
+      }
+    }
+
+    if (progress < 100) {
+      requestAnimationFrame(runProgress);
+    } else {
+      clearInterval(shuffleInterval);
+
+      // Final lock: CHEYYAR BUS vechu fill cheyyunnu
+      const finalWord = "CHEYYARBUS!";
+      for (let i = 0; i < TOTAL_BOXES; i++) {
+        boxes[i].textContent = finalWord[i] || getRandomChar();
+      }
+
+      // Exit curtain split
+      setTimeout(() => {
+        splashEl.classList.add("exit-stage");
+        setTimeout(() => {
+          splashEl.classList.add("curtain-open");
+          setTimeout(() => {
+            splashEl.style.display = "none";
+            document.body.classList.add("app-ready");
+          }, 650);
+        }, 280);
+      }, 200);
+    }
+  }
+
+  requestAnimationFrame(runProgress);
+}
 /* =========================================================
    15. IN-APP UPDATE ENGINE (OLD & NEW APK COMPATIBLE FIX)
    ========================================================= */

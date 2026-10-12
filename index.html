@@ -10,56 +10,85 @@
 <link rel="preconnect" href="https://fonts.gstatic.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="dash.css">
 <!-- Firebase App & Firestore SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
-<!-- ================= ANIMATED MOVING BUS SPLASH SCREEN ================= -->
-<div id="app-loading-screen" class="loading-screen-overlay">
-  <div class="splash-glow"></div>
-  <div class="loader-content">
-    <div class="bus-road-scene">
-      <div class="scene-cloud cloud-1">☁️</div>
-      <div class="scene-cloud cloud-2">☁️</div>
-      <div class="moving-bus-wrap">
-        <div class="bus-body">
-          <div class="bus-roof"></div>
-          <div class="bus-windows">
-            <span class="win"></span>
-            <span class="win"></span>
-            <span class="win"></span>
-            <span class="win front"></span>
+<!-- ULTRA SMOOTH CINEMATIC SPLASH SCREEN -->
+<div id="app-loading-screen" class="cb-splash-viewport">
+  <div class="cb-curtain cb-curtain-top"></div>
+  <div class="cb-curtain cb-curtain-bottom"></div>
+  <div class="cb-split-laser" id="cb-split-laser"></div>
+
+  <div class="cb-stage">
+    <!-- 1. Large Side-View Vector Bus (Ember Bus Theme) -->
+    <div class="cb-bus-lane">
+      <div class="cb-bus-side-unit" id="cb-bus-unit">
+        <div class="cb-side-bus">
+          <div class="s-bus-roof"></div>
+          <div class="s-bus-body">
+            <div class="s-bus-windows">
+              <span class="w"></span>
+              <span class="w"></span>
+              <span class="w"></span>
+              <span class="w front"></span>
+            </div>
+            <div class="s-bus-stripe"></div>
+            <div class="s-bus-light"></div>
           </div>
-          <div class="bus-strip"></div>
-          <div class="bus-light"></div>
-          <div class="bus-wheel wheel-front"></div>
-          <div class="bus-wheel wheel-back"></div>
+          <div class="s-wheel w-back"></div>
+          <div class="s-wheel w-front"></div>
         </div>
-        <div class="bus-exhaust"><span></span><span></span></div>
-      </div>
-      <div class="moving-road">
-        <div class="road-line"></div>
+        <div class="cb-side-light-beam"></div>
       </div>
     </div>
 
-    <h1 class="splash-title">Cheyyar<span>Bus</span></h1>
-    <p class="splash-tagline">Hyperlocal Transit Hub</p>
-
-    <div class="progress-container">
-      <div class="progress-bar-track">
-        <div class="progress-bar-fill" id="progress-fill"></div>
-      </div>
-      <div class="progress-text-row">
-        <span class="status-lbl">Loading Station Data…</span>
-        <span class="progress-num" id="progress-num">0%</span>
+    <!-- 2. Typography: CheyyarBus (Side Theme Match) -->
+    <div class="cb-title-mask">
+      <div class="cb-title-holder" id="cb-title-holder">
+        <h1 class="cb-main-heading">Cheyyar<span>Bus</span></h1>
+        <p class="cb-tamil-sub">செய்யாறு பேருந்து நிலையம்</p>
       </div>
     </div>
 
-    <div class="splash-developer-badge">
-      <span class="dev-icon">💻</span>
-      <span>Developed by <strong>Denesh</strong></span>
+    <!-- 3. Horizon Center Line -->
+    <div class="cb-horizon-line"></div>
+
+    <!-- 4. Town Badges Slot Shuffle (CHEYYARBUS - 10 boxes) -->
+    <div class="cb-shuffler-rack" id="cb-shuffler-rack">
+      <div class="cb-shuffler-rack" id="cb-shuffler-rack">
+        <span class="cb-box">C</span>
+        <span class="cb-box">H</span>
+        <span class="cb-box">E</span>
+        <span class="cb-box">Y</span>
+        <span class="cb-box">Y</span>
+        <span class="cb-box">A</span>
+        <span class="cb-box">R</span>
+        <span class="cb-box"> </span>
+        <span class="cb-box"> </span>
+        <span class="cb-box"> </span>
+        <span class="cb-box"> </span>
+      </div>
+    </div>
+
+    <!-- 5. Smooth Progress Wire & Waypoints -->
+    <div class="cb-track-dock">
+      <div class="cb-progress-wire">
+        <div class="cb-progress-filament" id="progress-fill"></div>
+        <span class="cb-node n1"></span>
+        <span class="cb-node n2"></span>
+        <span class="cb-node n3"></span>
+        <span class="cb-node n4"></span>
+      </div>
+
+      <!-- 6. Status Log & Counter -->
+      <div class="cb-meta-panel">
+        <span class="cb-status-log" id="splash-status-lbl">Connecting transit network…</span>
+        <span class="cb-counter-display" id="progress-num">0%</span>
+      </div>
     </div>
   </div>
 </div>
@@ -136,6 +165,9 @@
       </div>
     </div>
   </section>
+
+  <!-- ================= DASHBOARD: CLOCK / FIRST-LAST / NEXT 30 MIN / DAY AT A GLANCE / DEPARTURES BOARD ================= -->
+  <div id="dash-root"></div>
 
   <!-- ================= LAST BUS NIGHT WARNING BANNER ================= -->
   <div id="last-bus-alert" class="last-bus-banner" style="display: none;">
@@ -239,7 +271,47 @@
       </div>
     </div>
   </section>
+<!-- CHEYYAR PASSENGER OPERATIONAL NOTICE & COMMUNITY GUIDE -->
+<section class="cheyyar-notice-grid">
+  <!-- Left Card: Passenger Operational Notice -->
+  <div class="notice-card operational-notice">
+    <div class="notice-card-header">
+      <span class="notice-icon">⚠</span>
+      <h3>Passenger Operational Notice • <span>முக்கிய அறிவிப்பு</span></h3>
+    </div>
+    <p class="notice-desc">
+      Timings are subject to operational conditions, depot rotations and highway traffic along the Arcot, Kanchipuram and Vandavasi routes. Please verify live platform updates and destination boards at Cheyyar Bus Stand.
+    </p>
 
+    <div class="notice-subhead">Before you travel</div>
+    <div class="notice-pills-row">
+      <div class="n-pill"><span class="p-dot">💧</span> Confirm departure time</div>
+      <div class="n-pill"><span class="p-dot">☼</span> Check destination board</div>
+      <div class="n-pill"><span class="p-dot">⏱</span> Arrive a little early</div>
+      <div class="n-pill"><span class="p-dot">👤</span> Keep fare ready</div>
+      <div class="n-pill"><span class="p-dot">+</span> Ask staff if unsure</div>
+    </div>
+  </div>
+
+  <!-- Right Card: Community Transit Guide -->
+  <div class="notice-card community-card">
+    <div class="comm-badge">
+      <span class="comm-shield">🛡</span> Community transit guide
+    </div>
+    <h3 class="comm-title">Cheyyar Bus</h3>
+    <p class="comm-desc">
+      A community-oriented bus timetable interface. Timings and platform details should be confirmed with the timekeeper or operator at the Cheyyar bus terminus.
+    </p>
+
+    <div class="comm-footer">
+      <div>
+        <span class="comm-lbl">Created and maintained by</span>
+        <strong class="comm-name">Denesh</strong>
+      </div>
+      <button type="button" class="comm-heart" aria-label="Support">🧡</button>
+    </div>
+  </div>
+</section>
   <footer class="footer-wrap" id="footer">
     <p data-i18n="foot">Copied from the Cheyyar bus stand timetable. Always verify the board before travel.</p>
     <div class="footer-credit">
@@ -320,6 +392,7 @@
 <script src="data/timetable.js"></script>
 <script src="i18n.js"></script>
 <script src="bus3d.js"></script>
+<script src="dash.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
