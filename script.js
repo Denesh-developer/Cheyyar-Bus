@@ -514,7 +514,7 @@
    
    function shareOnWhatsApp(e, r, displayFrom, displayTo, displayTime) {
      e.stopPropagation();
-     const text = `🚌 *Cheyyar Bus Timings*\n📍 *Route:* ${displayFrom} ➔ ${displayTo}\n🕒 *Time:* ${displayTime}\n🚍 *Bus:* ${BUS(r)}\n\nLive on Cheyyar Bus Hub!`;
+     const text = `🚌 *Cheyyar Bus Timings*\n📍 *Route:* ${displayFrom} ➔ ${displayTo}\n🕒 *Time:* ${displayTime}\n🚍 *Bus:* ${BUS(r)}\n\n${(location.protocol.indexOf("http") === 0 ? location.origin + location.pathname : "https://cheyyar-bus.vercel.app/")}?to=${encodeURIComponent(r.to || "")}`;
      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
    }
    
@@ -977,11 +977,13 @@
        `;
        waBtn.addEventListener("click", e => shareOnWhatsApp(e, r, tdFrom.textContent, tdDest.textContent, r.displayTime));
        tdAction.appendChild(waBtn);
+       if (window.MyBus) tdAction.insertBefore(window.MyBus.makeButton(r), waBtn);
        tr.appendChild(tdAction);
    
        if (r === activeRow) tr.classList.add("active");
        tr.addEventListener("click", () => setActive(r));
    
+       if (window.MyBus && window.MyBus.isPinned(r)) tr.classList.add("is-pinned");
        r._el = tr;
        fragment.appendChild(tr);
      });

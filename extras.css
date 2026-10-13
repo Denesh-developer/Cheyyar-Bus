@@ -22,3 +22,17 @@
 [data-theme="light"] .cbx-card select { color-scheme: light; }
 .cbx-card select option { background: #141721; color: #f6f7fb; }
 [data-theme="light"] .cbx-card select option { background: #ffffff; color: #111111; }
+
+/* My Buses (pins) */
+.pin-btn { background: none; border: 0; color: var(--text-muted, #6c7280); font-size: 20px; line-height: 1; padding: 6px 8px; cursor: pointer; }
+.pin-btn.on, .pin-btn:hover { color: #ffb020; }
+tr.is-pinned { box-shadow: inset 3px 0 0 #ffb020; }
+.cbx-pins { margin: 14px 0; padding: 12px 14px; background: var(--card, #0e1016); border: 1px solid rgba(255,176,32,.35); border-radius: 16px; }
+.cbx-pins[hidden] { display: none; }
+.cbx-pins-head { font-weight: 800; font-size: 14px; color: #ffb020; margin-bottom: 8px; }
+.cbx-pin-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border-hairline, rgba(255,255,255,.05)); flex-wrap: wrap; }
+.cbx-pin-item:first-of-type { border-top: 0; }
+.cbx-pin-main { flex: 1 1 140px; font-size: 14px; }
+.cbx-pin-time { font-size: 13px; color: var(--text-soft, #a9aeba); }
+.cbx-pin-time span { color: var(--primary, #ff5c35); font-weight: 700; }
+.cbx-pin-x { background: none; border: 0; color: var(--text-muted, #6c7280); cursor: pointer; font-size: 14px; padding: 6px; }

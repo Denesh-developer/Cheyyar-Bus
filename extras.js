@@ -123,6 +123,8 @@
     if (e.target.closest && e.target.closest("#lang-btn")) {
       setTimeout(function () {
         showUpdated();
+        var sb = $("cbx-share"); if (sb) sb.textContent = "🔗 " + tr("Share search", "தேடலை பகிர்");
+        renderPins();
         var b = $("cbx-open"); if (b) b.textContent = "⚠ " + tr("Report a change", "மாற்றத்தை தெரிவி");
         if (modal && !modal.hidden) fillModalText();
       }, 60);
@@ -134,6 +136,130 @@
     window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
   }
 
-  function init() { addReportButton(); showUpdated(); if (!navigator.onLine) window.dispatchEvent(new Event("offline")); }
+
+  /* 6. Share a search link (?from=&to=&q=) */
+  function baseUrl() { return location.protocol.indexOf("http") === 0 ? location.origin + location.pathname : "https://cheyyar-bus.vercel.app/"; }
+  function buildShareUrl() {
+    var p = new URLSearchParams();
+    if (typeof fromEl !== "undefined" && fromEl && fromEl.value.trim()) p.set("from", fromEl.value.trim());
+    if (typeof toEl !== "undefined" && toEl && toEl.value.trim()) p.set("to", toEl.value.trim());
+    if (typeof searchEl !== "undefined" && searchEl && searchEl.value.trim()) p.set("q", searchEl.value.trim());
+    var qs = p.toString();
+    return baseUrl() + (qs ? "?" + qs : "");
+  }
+  function shareSearch() {
+    var url = buildShareUrl(), title = "CheyyarBus", text = tr("Cheyyar bus timings", "செய்யாறு பேருந்து நேரங்கள்");
+    if (navigator.share) { navigator.share({ title: title, text: text, url: url }).catch(function () {}); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () { showToast(tr("Link copied.", "இணைப்பு நகலெடுக்கப்பட்டது."), 2500); }, function () { window.prompt(tr("Copy this link:", "இணைப்பை நகலெடுக்கவும்:"), url); });
+    } else { window.prompt(tr("Copy this link:", "இணைப்பை நகலெடுக்கவும்:"), url); }
+  }
+  function addShareButton() {
+    var row = document.querySelector(".chips-row");
+    if (!row || $("cbx-share")) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.id = "cbx-share"; b.className = "chip-btn";
+    b.textContent = "🔗 " + tr("Share search", "தேடலை பகிர்");
+    b.addEventListener("click", shareSearch);
+    row.appendChild(b);
+  }
+  function applyUrlParams() {
+    var p = new URLSearchParams(location.search), f = p.get("from"), t = p.get("to"), q = p.get("q");
+    if (!f && !t && !q) return;
+    function set(el, v) { if (el && v) { el.value = v.slice(0, 60); el.dispatchEvent(new Event("input", { bubbles: true })); } }
+    try { set(fromEl, f); set(toEl, t); set(searchEl, q); } catch (err) { return; }
+    ["from-dropdown", "to-dropdown"].forEach(function (id) { var d = $(id); if (d) d.style.display = "none"; });
+    if (typeof render === "function") render();
+    setTimeout(function () { if (typeof scrollToBusResults === "function") scrollToBusResults(); }, 2500);
+  }
+
+  /* 7. My Buses (pin a departure, kept on this device) */
+  var PIN_KEY = "cbx_pins", MAX_PINS = 10;
+  function loadPins() { try { var a = JSON.parse(localStorage.getItem(PIN_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (err) { return []; } }
+  function savePins(a) { try { localStorage.setItem(PIN_KEY, JSON.stringify(a.slice(0, MAX_PINS))); } catch (err) {} }
+  function keyOf(r) { return [r.routeKey || "", r.time || "", r.bus || ""].join("|"); }
+  function isPinned(r) { return loadPins().indexOf(keyOf(r)) >= 0; }
+  function setPinned(r, on) {
+    var a = loadPins(), k = keyOf(r), i = a.indexOf(k);
+    if (on && i < 0) {
+      if (a.length >= MAX_PINS) { showToast(tr("You can pin up to 10 buses.", "10 பேருந்துகள் வரை பின் செய்யலாம்."), 2500); return false; }
+      a.push(k);
+    }
+    if (!on && i >= 0) a.splice(i, 1);
+    savePins(a); renderPins(); return true;
+  }
+  function makeButton(r) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "pin-btn";
+    function paint() {
+      var on = isPinned(r);
+      b.textContent = on ? "★" : "☆";
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.title = on ? tr("Remove from My Buses", "எனது பேருந்துகளில் இருந்து நீக்கு") : tr("Add to My Buses", "எனது பேருந்துகளில் சேர்");
+      b.setAttribute("aria-label", b.title);
+    }
+    paint();
+    b.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      if (setPinned(r, !isPinned(r))) { paint(); if (r._el) r._el.classList.toggle("is-pinned", isPinned(r)); }
+    });
+    return b;
+  }
+  window.MyBus = { makeButton: makeButton, isPinned: isPinned };
+
+  function cdText(min) {
+    var diff = min - nowMin(), ta = lang() === "ta";
+    if (diff < -5) return ta ? "நாளை" : "tomorrow";
+    if (diff <= 0) return ta ? "இப்போது" : "now";
+    if (diff < 60) return ta ? diff + " நிமிடத்தில்" : "in " + diff + " mins";
+    var h = Math.floor(diff / 60), m = diff % 60;
+    return ta ? h + " மணி" + (m ? " " + m + " நிமி" : "") + " கழித்து" : "in " + h + "h" + (m ? " " + m + "m" : "");
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function pinnedRows() {
+    if (typeof ROUTES === "undefined" || typeof IDS === "undefined") return [];
+    var keys = loadPins(), out = [];
+    keys.forEach(function (k) {
+      var found = null;
+      IDS.some(function (id) { return ROUTES[id].rows.some(function (r) { if (keyOf(r) === k) { found = r; return true; } return false; }); });
+      if (found) out.push(found);
+    });
+    out.sort(function (a, b) {
+      var n = nowMin(), da = a.min - n, db = b.min - n;
+      if (da < -5) da += 1440; if (db < -5) db += 1440;
+      return da - db;
+    });
+    return out;
+  }
+  function renderPins() {
+    var host = $("cbx-pins");
+    if (!host) {
+      var anchor = document.querySelector(".search-panel");
+      if (!anchor) return;
+      host = document.createElement("section"); host.id = "cbx-pins"; host.className = "cbx-pins"; host.hidden = true;
+      anchor.parentNode.insertBefore(host, anchor);
+      host.addEventListener("click", function (ev) {
+        var rm = ev.target.closest && ev.target.closest("[data-unpin]");
+        if (rm) { var a = loadPins(); a.splice(a.indexOf(rm.getAttribute("data-unpin")), 1); savePins(a); renderPins(); if (typeof render === "function") render(); }
+      });
+    }
+    var rows = pinnedRows();
+    if (!rows.length) { host.hidden = true; host.innerHTML = ""; return; }
+    host.hidden = false;
+    host.innerHTML = '<div class="cbx-pins-head">★ ' + tr("My Buses", "எனது பேருந்துகள்") + "</div>" +
+      rows.map(function (r) {
+        var bus = typeof BUS === "function" ? BUS(r) : r.bus, to = typeof FINAL_TO === "function" ? FINAL_TO(r) : r.to;
+        return '<div class="cbx-pin-item"><div class="cbx-pin-main"><strong>' + esc(bus) + "</strong> → " + esc(to || "") +
+          '</div><div class="cbx-pin-time">' + esc(r.displayTime || r.time) + ' · <span data-cd-pin="' + r.min + '">' + cdText(r.min) + "</span></div>" +
+          '<button type="button" class="cbx-pin-x" data-unpin="' + esc(keyOf(r)) + '" aria-label="' + tr("Remove", "நீக்கு") + '">✕</button></div>';
+      }).join("");
+  }
+  function tickPins() {
+    document.querySelectorAll("[data-cd-pin]").forEach(function (el) { el.textContent = cdText(Number(el.getAttribute("data-cd-pin"))); });
+  }
+  setInterval(tickPins, 20000);
+
+  function init() { addReportButton(); addShareButton(); showUpdated(); applyUrlParams(); renderPins(); if (typeof render === "function") render(); if (!navigator.onLine) window.dispatchEvent(new Event("offline")); }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
