@@ -4,6 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#050609">
+<meta name="description" content="Cheyyar bus stand timetable: find the next bus from Cheyyar to Chennai, Kanchipuram, Arani, Vandavasi, Vellore and Bengaluru. செய்யாறு பேருந்து கால அட்டவணை.">
+<link rel="canonical" href="https://cheyyar-bus.vercel.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CheyyarBus">
+<meta property="og:title" content="CheyyarBus | Cheyyar Bus Timetable">
+<meta property="og:description" content="Find the next bus from Cheyyar bus stand. Search by destination, see departures and share timings on WhatsApp.">
+<meta property="og:url" content="https://cheyyar-bus.vercel.app/">
+<meta property="og:image" content="https://cheyyar-bus.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CheyyarBus | Cheyyar Bus Timetable">
+<meta name="twitter:description" content="Find the next bus from Cheyyar bus stand.">
+<meta name="twitter:image" content="https://cheyyar-bus.vercel.app/og-image.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"CheyyarBus","url":"https://cheyyar-bus.vercel.app/","description":"Cheyyar bus stand timetable and next bus finder.","applicationCategory":"TravelApplication","operatingSystem":"Any","inLanguage":["en","ta"],"author":{"@type":"Person","name":"Deneshraja N"}}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 rx=%2728%27 fill=%27%23ff5c35%27/%3E%3Ctext x=%2750%27 y=%2766%27 font-size=%2756%27 text-anchor=%27middle%27%3E%F0%9F%9A%8C%3C/text%3E%3C/svg%3E">
 <title>Cheyyar Bus | செய்யாறு பேருந்து கால அட்டவணை</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,6 +28,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="dash.css">
+<link rel="stylesheet" href="extras.css">
 <!-- Firebase App & Firestore SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -134,7 +152,7 @@
 
       <div class="stats-panel">
         <div class="stat-card" id="visits-stat-card">
-          <span class="stat-num" id="visit-count">0</span>
+          <span class="stat-num" id="visit-count">—</span>
           <span class="stat-label">TOTAL VISITS</span>
         </div>
         <div class="stat-col">
@@ -314,6 +332,7 @@
 </section>
   <footer class="footer-wrap" id="footer">
     <p data-i18n="foot">Copied from the Cheyyar bus stand timetable. Always verify the board before travel.</p>
+    <p class="tt-updated" id="tt-updated" hidden></p>
     <div class="footer-credit">
       <span>Crafted with ❤️ for Cheyyar</span>
       <span class="dev-pill">Developed by <strong>Denesh</strong></span>
@@ -394,5 +413,6 @@
 <script src="bus3d.js"></script>
 <script src="dash.js"></script>
 <script src="script.js"></script>
+<script src="extras.js"></script>
 </body>
 </html>

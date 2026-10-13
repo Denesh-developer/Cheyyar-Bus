@@ -11,6 +11,7 @@
    Never guess a missing time or bus number: leave it out or set "verify". */
 window.TIMETABLE = {
   source: "Cheyyar bus stand timetable",
+  updated: "2026-10-13",
   routes: [
     { id: "arani", name: "Arani via SV Nagaram", tamil: "ஆரணி வழி SV நகரம்", bay: 1, color: "#ff5c35", entries: [
       {"time":"04:50 AM","bus":"239","dest":"Tiruvannamalai","destTa":"திருவண்ணாமலை"},

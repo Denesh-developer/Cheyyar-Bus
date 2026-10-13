@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>CheyyarBus Timetable Editor</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: system-ui, sans-serif; background: #050609; color: #f6f7fb; margin: 0; padding: 16px; }
+  h1 { font-size: 20px; margin: 0 0 4px; } p.hint { color: #a9aeba; font-size: 13px; margin: 0 0 14px; max-width: 760px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  button, select { background: #141721; color: #f6f7fb; border: 1px solid rgba(255,255,255,.16); border-radius: 8px; padding: 8px 12px; font: inherit; cursor: pointer; }
+  button.primary { background: #ff5c35; border-color: #ff5c35; color: #fff; font-weight: 700; }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; min-width: 920px; width: 100%; }
+  th, td { border-bottom: 1px solid rgba(255,255,255,.08); padding: 4px; text-align: left; font-size: 13px; }
+  input[type=text] { width: 100%; box-sizing: border-box; background: #0e1016; color: inherit; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; padding: 6px; font: inherit; }
+  input.bad { border-color: #ff4d4d; background: #2a1215; }
+  td.act { white-space: nowrap; } td.act button { padding: 4px 8px; }
+  #info { color: #a9aeba; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>CheyyarBus Timetable Editor</h1>
+<p class="hint">Edit the buses, click <b>Download timetable.js</b>, then replace <code>data/timetable.js</code> in your GitHub repo and commit. Vercel redeploys and the site updates. Nothing is uploaded from this page. Time format: <code>06:10 AM</code>. Leave a field empty if you do not know it, or tick "Check board".</p>
+<div class="bar">
+  <select id="route" aria-label="Route"></select>
+  <button id="add" type="button">+ Add bus</button>
+  <button id="dl" type="button" class="primary">⬇ Download timetable.js</button>
+  <span id="info"></span>
+</div>
+<div class="wrap"><table>
+  <thead><tr><th>Time</th><th>Bus</th><th>Bus (Tamil)</th><th>Destination</th><th>Destination (Tamil)</th><th>Platform</th><th>Check board</th><th></th></tr></thead>
+  <tbody id="rows"></tbody>
+</table></div>
+<script src="data/timetable.js"></script>
+<script>
+(function () {
+  var D = JSON.parse(JSON.stringify(window.TIMETABLE));
+  var TIME_RE = /^(0[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$/;
+  var FIELDS = [["time"], ["bus"], ["busTa"], ["dest"], ["destTa"], ["platform"]];
+  var cur = 0;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function renderRoutes() {
+    $("route").innerHTML = D.routes.map(function (r, i) { return '<option value="' + i + '">' + (r.name || r.id) + " (" + r.entries.length + ")</option>"; }).join("");
+    $("route").value = cur;
+  }
+  function render() {
+    var entries = D.routes[cur].entries;
+    $("rows").innerHTML = "";
+    entries.forEach(function (e, i) {
+      var tr = document.createElement("tr");
+      FIELDS.forEach(function (f) {
+        var td = document.createElement("td"), inp = document.createElement("input");
+        inp.type = "text"; inp.value = e[f[0]] || "";
+        if (f[0] === "time") inp.classList.toggle("bad", !TIME_RE.test(inp.value));
+        inp.addEventListener("input", function () {
+          e[f[0]] = inp.value.trim();
+          if (f[0] === "time") inp.classList.toggle("bad", !TIME_RE.test(inp.value.trim()));
+        });
+        td.appendChild(inp); tr.appendChild(td);
+      });
+      var tc = document.createElement("td"), cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = !!e.verify; cb.addEventListener("change", function () { e.verify = cb.checked; });
+      tc.appendChild(cb); tr.appendChild(tc);
+      var ta = document.createElement("td"); ta.className = "act";
+      [["↑", -1], ["↓", 1]].forEach(function (m) {
+        var b = document.createElement("button"); b.type = "button"; b.textContent = m[0];
+        b.addEventListener("click", function () { var j = i + m[1]; if (j < 0 || j >= entries.length) return; var t = entries[i]; entries[i] = entries[j]; entries[j] = t; render(); });
+        ta.appendChild(b);
+      });
+      var del = document.createElement("button"); del.type = "button"; del.textContent = "✕";
+      del.addEventListener("click", function () { if (confirm("Delete this bus?")) { entries.splice(i, 1); renderRoutes(); render(); } });
+      ta.appendChild(del); tr.appendChild(ta);
+      $("rows").appendChild(tr);
+    });
+    var bad = entries.filter(function (e) { return !TIME_RE.test(e.time || ""); }).length;
+    $("info").textContent = entries.length + " buses" + (bad ? " · " + bad + " with invalid time (red)" : "");
+  }
+  function clean(e) {
+    var o = {}, order = ["time", "bus", "busTa", "dest", "destTa", "platform", "verify"];
+    order.forEach(function (k) { if (e[k] !== undefined && e[k] !== "" && e[k] !== false) o[k] = e[k]; });
+    Object.keys(e).forEach(function (k) { if (order.indexOf(k) < 0) o[k] = e[k]; });
+    return o;
+  }
+  function build() {
+    var d = new Date(), iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    var s = "/* Cheyyar bus stand timetable data (scheduled times only, NOT live tracking).\n" +
+      "   Edit with admin.html, or change a line in \"entries\" by hand.\n" +
+      "   Fields: time \"HH:MM AM/PM\", bus, busTa, dest, destTa, platform, verify (true = show \"Check board\").\n" +
+      "   Never guess a missing time or bus number: leave it out or set \"verify\". */\n" +
+      "window.TIMETABLE = {\n  source: " + JSON.stringify(D.source || "Cheyyar bus stand timetable") + ",\n  updated: \"" + iso + "\",\n  routes: [\n";
+    D.routes.forEach(function (r) {
+      var meta = Object.keys(r).filter(function (k) { return k !== "entries"; }).map(function (k) { return k + ": " + JSON.stringify(r[k]); }).join(", ");
+      s += "    { " + meta + ", entries: [\n" + r.entries.map(function (e) { return "      " + JSON.stringify(clean(e)) + ","; }).join("\n") + "\n    ] },\n";
+    });
+    return s + "  ]\n};\n";
+  }
+  $("route").addEventListener("change", function () { cur = Number($("route").value); render(); });
+  $("add").addEventListener("click", function () { D.routes[cur].entries.push({ time: "", bus: "", dest: "" }); renderRoutes(); render(); });
+  $("dl").addEventListener("click", function () {
+    var bad = 0; D.routes.forEach(function (r) { r.entries.forEach(function (e) { if (!TIME_RE.test(e.time || "")) bad++; }); });
+    if (bad && !confirm(bad + " bus(es) have an invalid time (format 06:10 AM). Download anyway?")) return;
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([build()], { type: "text/javascript" }));
+    a.download = "timetable.js"; a.click();
+  });
+  renderRoutes(); render();
+})();
+</script>
+</body>
+</html>

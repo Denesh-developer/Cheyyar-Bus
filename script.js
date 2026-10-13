@@ -1281,7 +1281,7 @@
          const diff = r.min - now;
          const timeText = isTomorrow 
            ? `Tomorrow at ${r.displayTime || r.time}` 
-           : `${r.displayTime || r.time} (${diff > 0 ? 'in ' + diff + ' mins' : 'now'})`;
+           : `${r.displayTime || r.time} (<span data-cd-min="${r.min}">${diff > 0 ? 'in ' + diff + ' mins' : 'now'}</span>)`;
      
          msgEl.innerHTML = `
            <div style="background: rgba(255, 122, 69, 0.15); border: 1px solid #ff7a45; padding: 10px 14px; border-radius: 8px; margin: 12px 0; color: #ff7a45; font-weight: 600;">

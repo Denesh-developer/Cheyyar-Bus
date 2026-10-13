@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://cheyyar-bus.vercel.app/sitemap.xml

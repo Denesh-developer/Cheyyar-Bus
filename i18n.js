@@ -75,7 +75,7 @@ const TA_WORDS = [
   ["Guruvarajapettai", "குருவராஜபேட்டை"], ["Arakkonam", "அரக்கோணம்"], ["Thiruthani", "திருத்தணி"],
   ["Kanchipuram", "காஞ்சிபுரம்"], ["Chengalpattu", "செங்கல்பட்டு"], ["Tambaram", "தாம்பரம்"],
   ["Sholinghur", "சோளிங்கர்"], ["Kalathur", "களத்தூர்"], ["Chennai", "சென்னை"],
-  ["Vellore", "வேலூர்"], ["Arcot", "ஆற்காடு"]
+  ["Vellore", "வேலூர்"], ["Arcot", "ஆற்காடு"],
   ["Arani Koot Road", "ஆரணி கூட்ரோடு"],
   ["Duli", "தூளி"],
   ["Pappanthangal", "பாப்பந்தாங்கல்"],
@@ -93,17 +93,17 @@ const TA_WORDS = [
   ["Perumugai", "பெருமுகை"],
   ["Sathuvacheri", "சத்துவாச்சாரி"],
   ["Kaadhidhapettai", "காகிதப்பட்டறை"],
-  ["Thottapalayam", "தோட்டப்பாளையம்"]
+  ["Thottapalayam", "தோட்டப்பாளையம்"],
   ["K Velur", "கே.வேலூர்"],
 ["Sembedu", "செம்பேடு"],
 ["Ozhalai", "ஒழலை"],
 ["Athithangal", "அத்தித்தாங்கல்"],
-["Muppaduvetti", "முப்பத்துவெட்டி"]
+["Muppaduvetti", "முப்பத்துவெட்டி"],
 ["Anakavur", "அனக்காவூர்"],
 ["Erumaivetti", "எருமைவெட்டி"],
 ["Kulamanthai", "குளமந்தை"],
 ["Eachur", "ஏச்சூர்"],
-["Vandavasi", "வந்தவாசி"]
+["Vandavasi", "வந்தவாசி"],
 ["Vadathandalam", "வடதண்டலம்"],
 ["Arugavoor", "அருகாவூர்"],
 ["Perupallam", "பெருபள்ளம்"],
@@ -113,16 +113,16 @@ const TA_WORDS = [
 ["Mambakkam", "மாம்பாக்கம்"],
 ["Nethapakkam", "நேத்தப்பாக்கம்"],
 ["S.V Nagaram", "எஸ்.வி.நகரம்"],
-["Arani", "ஆரணி"]
+["Arani", "ஆரணி"],
 ["Vellai", "வெள்ளை"],
 ["Kilathur", "கீழாத்தூர்"],
 ["Eraiyur", "இரையூர்"],
-["Korukkai", "கொரக்கை"]
+["Korukkai", "கொரக்கை"],
 ["Kilmattai", "கீழ்மட்டை"],
-["Thavasi", "தவசி"]
+["Thavasi", "தவசி"],
 ["Kaniyanthangal", "கணியந்தாங்கல்"],
 ["Allalacheri", "அல்லாலச்சேரி"],
-["Kalavai", "கலவை"]
+["Kalavai", "கலவை"],
 ["Mottur", "மோட்டூர்"],
 ["Parasur", "பாராசூர்"],
 ["Navalpakkam", "நாவல்பாக்கம்"],
