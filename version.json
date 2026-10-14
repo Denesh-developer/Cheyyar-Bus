@@ -2,5 +2,5 @@
     "latestVersionCode": 2,
     "latestVersionName": "1.1.0",
     "apkUrl": "https://github.com/Denesh-developer/Cheyyar-Bus/releases/download/v1.1.0/cheyyar-bus-v1.1.0.apk",
-    "releaseNotes": "3D Voice Assistant & Real-time bus tracking add aagirukku!"
+    "releaseNotes": "New: 3D voice assistant and estimated bus position along the route (based on the scheduled timetable, not GPS)."
   }

@@ -48,7 +48,7 @@ const I18N = {
     dest: "சேரும் இடம்",
     fromLabel: "புறப்படும் இடம்",
     toLabel: "சேரும் இடம்",
-    extraLabel: "பேருந்து எண் / நேரம்",
+    extraLabel: "பேருந்து எண் / இயக்குநர்",
     routeTabsTitle: "வழித்தடங்கள்",
     ph: "பேருந்து அல்லது ஊரைத் தேடுங்கள்",
     empty: "தேடலுக்குரிய பேருந்துகள் இல்லை. அனைத்து பேருந்துகளையும் காண வடிகட்டியை அழிக்கவும்.",
@@ -140,3 +140,7 @@ const TA_WORDS = [
 ["Andiyarpalayam", "ஆண்டியார்பாளையம்"],
 ["Puducherry", "புதுச்சேரி"]
 ];
+
+/* const does not create window properties; script.js and admin.html read them from window */
+window.I18N = I18N;
+window.TA_WORDS = TA_WORDS;

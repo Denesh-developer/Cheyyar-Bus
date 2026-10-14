@@ -19,6 +19,7 @@
   input.bad { border-color: #ff4d4d; background: #2a1215; }
   td.act { white-space: nowrap; } td.act button { padding: 4px 8px; }
   #info { color: #a9aeba; font-size: 13px; }
+  tr.dup input { border-color: #ffb020; }
 </style>
 </head>
 <body>
@@ -27,6 +28,9 @@
 <div class="bar">
   <select id="route" aria-label="Route"></select>
   <button id="add" type="button">+ Add bus</button>
+  <button id="sort" type="button">Sort by time</button>
+  <button id="fillta" type="button">Fill Tamil</button>
+  <button id="reset" type="button">Discard draft</button>
   <button id="dl" type="button" class="primary">⬇ Download timetable.js</button>
   <span id="info"></span>
 </div>
@@ -35,12 +39,40 @@
   <tbody id="rows"></tbody>
 </table></div>
 <script src="data/timetable.js"></script>
+<script src="i18n.js"></script>
 <script>
 (function () {
   var D = JSON.parse(JSON.stringify(window.TIMETABLE));
   var TIME_RE = /^(0[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$/;
   var FIELDS = [["time"], ["bus"], ["busTa"], ["dest"], ["destTa"], ["platform"]];
   var cur = 0;
+  var DRAFT_KEY = "cbx_admin_draft", baseUpdated = D.updated || "";
+  function saveDraft() { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ base: baseUpdated, routes: D.routes })); } catch (e) {} }
+  try {
+    var dr = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+    if (dr && Array.isArray(dr.routes) && dr.base === baseUpdated && JSON.stringify(dr.routes) !== JSON.stringify(D.routes) &&
+        confirm("Unsaved draft found. Restore it?")) D.routes = dr.routes;
+    else if (dr && dr.base !== baseUpdated) localStorage.removeItem(DRAFT_KEY);
+  } catch (e) {}
+  function normTime(v) {
+    var m = /^\s*(\d{1,2})\s*[:.]?\s*(\d{2})?\s*([ap])\.?\s*m?\.?\s*$/i.exec(v || "");
+    if (!m) return v;
+    var h = parseInt(m[1], 10), mi = m[2] ? parseInt(m[2], 10) : 0;
+    if (h < 1 || h > 12 || mi > 59) return v;
+    return (h < 10 ? "0" : "") + h + ":" + (mi < 10 ? "0" : "") + mi + " " + m[3].toUpperCase() + "M";
+  }
+  function toMin(t) {
+    var m = /^(\d{2}):(\d{2}) (AM|PM)$/.exec(t || "");
+    if (!m) return 99999;
+    return ((parseInt(m[1], 10) % 12) + (m[3] === "PM" ? 12 : 0)) * 60 + parseInt(m[2], 10);
+  }
+  function taText(s) {
+    var words = (window.TA_WORDS || []).slice().sort(function (x, y) { return y[0].length - x[0].length; });
+    if (!words.length) return "";
+    var out = String(s || "").replace(/via ([A-Za-z]+)/g, "$1 வழி");
+    var map = {}, alt = words.map(function (w) { map[w[0]] = w[1]; return w[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }).join("|");
+    return out.replace(new RegExp("(^|[^A-Za-z])(" + alt + ")(?![A-Za-z])", "g"), function (m, p, w) { return p + (map[w] || w); });
+  }
   var $ = function (id) { return document.getElementById(id); };
 
   function renderRoutes() {
@@ -59,25 +91,35 @@
         inp.addEventListener("input", function () {
           e[f[0]] = inp.value.trim();
           if (f[0] === "time") inp.classList.toggle("bad", !TIME_RE.test(inp.value.trim()));
+          saveDraft();
+        });
+        if (f[0] === "time") inp.addEventListener("blur", function () {
+          var n = normTime(inp.value); if (n !== inp.value) { inp.value = n; e.time = n; inp.classList.toggle("bad", !TIME_RE.test(n)); saveDraft(); render(); }
         });
         td.appendChild(inp); tr.appendChild(td);
       });
       var tc = document.createElement("td"), cb = document.createElement("input");
-      cb.type = "checkbox"; cb.checked = !!e.verify; cb.addEventListener("change", function () { e.verify = cb.checked; });
+      cb.type = "checkbox"; cb.checked = !!e.verify; cb.addEventListener("change", function () { e.verify = cb.checked; saveDraft(); });
       tc.appendChild(cb); tr.appendChild(tc);
       var ta = document.createElement("td"); ta.className = "act";
       [["↑", -1], ["↓", 1]].forEach(function (m) {
         var b = document.createElement("button"); b.type = "button"; b.textContent = m[0];
-        b.addEventListener("click", function () { var j = i + m[1]; if (j < 0 || j >= entries.length) return; var t = entries[i]; entries[i] = entries[j]; entries[j] = t; render(); });
+        b.addEventListener("click", function () { var j = i + m[1]; if (j < 0 || j >= entries.length) return; var t = entries[i]; entries[i] = entries[j]; entries[j] = t; saveDraft(); render(); });
         ta.appendChild(b);
       });
       var del = document.createElement("button"); del.type = "button"; del.textContent = "✕";
-      del.addEventListener("click", function () { if (confirm("Delete this bus?")) { entries.splice(i, 1); renderRoutes(); render(); } });
+      del.addEventListener("click", function () { if (confirm("Delete this bus?")) { entries.splice(i, 1); saveDraft(); renderRoutes(); render(); } });
       ta.appendChild(del); tr.appendChild(ta);
       $("rows").appendChild(tr);
     });
+    var seen = {}, dups = 0;
+    entries.forEach(function (e) { var k = (e.time || "") + "|" + (e.bus || "").toLowerCase(); seen[k] = (seen[k] || 0) + 1; });
+    Array.prototype.forEach.call($("rows").children, function (tr, i) {
+      var e = entries[i], k = (e.time || "") + "|" + (e.bus || "").toLowerCase();
+      if (e.time && e.bus && seen[k] > 1) { tr.classList.add("dup"); dups++; }
+    });
     var bad = entries.filter(function (e) { return !TIME_RE.test(e.time || ""); }).length;
-    $("info").textContent = entries.length + " buses" + (bad ? " · " + bad + " with invalid time (red)" : "");
+    $("info").textContent = entries.length + " buses" + (bad ? " · " + bad + " with invalid time (red)" : "") + (dups ? " · " + dups + " duplicate rows (orange)" : "");
   }
   function clean(e) {
     var o = {}, order = ["time", "bus", "busTa", "dest", "destTa", "platform", "verify"];
@@ -99,7 +141,22 @@
     return s + "  ]\n};\n";
   }
   $("route").addEventListener("change", function () { cur = Number($("route").value); render(); });
-  $("add").addEventListener("click", function () { D.routes[cur].entries.push({ time: "", bus: "", dest: "" }); renderRoutes(); render(); });
+  $("add").addEventListener("click", function () { D.routes[cur].entries.push({ time: "", bus: "", dest: "" }); saveDraft(); renderRoutes(); render(); });
+  $("sort").addEventListener("click", function () {
+    D.routes[cur].entries.sort(function (x, y) { return toMin(x.time) - toMin(y.time); });
+    saveDraft(); render();
+  });
+  $("fillta").addEventListener("click", function () {
+    var n = 0;
+    D.routes[cur].entries.forEach(function (e) {
+      if (!e.busTa && e.bus) { var t = taText(e.bus); if (t && t !== e.bus) { e.busTa = t; n++; } }
+      if (!e.destTa && e.dest) { var d = taText(e.dest); if (d && d !== e.dest) { e.destTa = d; n++; } }
+    });
+    saveDraft(); render(); $("info").textContent = "Filled " + n + " empty Tamil fields. Please proofread them.";
+  });
+  $("reset").addEventListener("click", function () {
+    if (confirm("Discard all unsaved edits and reload the published timetable?")) { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} location.reload(); }
+  });
   $("dl").addEventListener("click", function () {
     var bad = 0; D.routes.forEach(function (r) { r.entries.forEach(function (e) { if (!TIME_RE.test(e.time || "")) bad++; }); });
     if (bad && !confirm(bad + " bus(es) have an invalid time (format 06:10 AM). Download anyway?")) return;

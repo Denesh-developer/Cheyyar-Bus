@@ -1,6 +1,7 @@
 /* CheyyarBus service worker: network-first so updates show immediately, cache fallback for offline use.
    version.json is never cached, so the in-app APK update check keeps working. */
-const CACHE = "cheyyarbus-v1";
+const CACHE = "cheyyarbus-v2";
+const NET_TIMEOUT_MS = 3000; /* slow network + cached copy available: show the cache after 3s */
 const CORE = ["./", "index.html", "style.css", "dash.css", "extras.css", "i18n.js", "bus3d.js", "dash.js", "script.js", "extras.js",
   "data/timetable.js", "manifest.webmanifest", "icons/icon-192.png", "assets/ai-girl.png"];
 const STATIC_HOSTS = ["cdnjs.cloudflare.com", "fonts.googleapis.com", "fonts.gstatic.com"];
@@ -17,23 +18,28 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   if (url.origin === location.origin) {
     if (url.pathname.endsWith("/version.json")) return;
-    e.respondWith(networkFirst(req));
+    e.respondWith(networkFirst(req, e));
   } else if (STATIC_HOSTS.includes(url.hostname)) {
     e.respondWith(staleWhileRevalidate(req));
   }
 });
-async function networkFirst(req) {
+async function networkFirst(req, evt) {
   const c = await caches.open(CACHE);
-  try {
-    const res = await fetch(req);
+  const cached = await c.match(req, { ignoreSearch: true });
+  const net = fetch(req).then(res => {
     if (res && res.status === 200) c.put(req, res.clone());
     return res;
-  } catch (err) {
-    const hit = await c.match(req, { ignoreSearch: true });
-    if (hit) return hit;
-    if (req.mode === "navigate") { const idx = await c.match("index.html"); if (idx) return idx; }
-    throw err;
+  });
+  if (evt) evt.waitUntil(net.catch(() => {})); /* let the cache refresh finish even after a timeout */
+  if (!cached) {
+    try { return await net; }
+    catch (err) {
+      if (req.mode === "navigate") { const idx = await c.match("index.html"); if (idx) return idx; }
+      throw err;
+    }
   }
+  const timer = new Promise(resolve => setTimeout(() => resolve(cached), NET_TIMEOUT_MS));
+  return Promise.race([net.catch(() => cached), timer]);
 }
 async function staleWhileRevalidate(req) {
   const c = await caches.open(CACHE);

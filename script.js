@@ -481,12 +481,21 @@
       5. TRANSLATION & HELPERS
       ========================================================= */
    
+   // Whole-word, longest-first matching so short names (Koor, Duli, Vellai)
+   // never rewrite part of a longer place name.
+   let _taRe = null, _taMap = null;
+   function buildTaMatcher() {
+     const words = (window.TA_WORDS || []).slice().sort((a, b) => b[0].length - a[0].length);
+     _taMap = new Map(words.map(w => [w[0], w[1]]));
+     if (!words.length) return;
+     const alt = words.map(w => w[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+     _taRe = new RegExp("(^|[^A-Za-z])(" + alt + ")(?![A-Za-z])", "g");
+   }
    function T(text, l) {
      if ((l || lang) !== "ta") return text;
      let out = (text || "").replace(/via ([A-Za-z]+)/g, "$1 வழி");
-     if (window.TA_WORDS) {
-       TA_WORDS.forEach(w => { out = out.split(w[0]).join(w[1]); });
-     }
+     if (_taMap === null) buildTaMatcher();
+     if (_taRe) out = out.replace(_taRe, (m, pre, w) => pre + (_taMap.get(w) || w));
      return out;
    }
    
